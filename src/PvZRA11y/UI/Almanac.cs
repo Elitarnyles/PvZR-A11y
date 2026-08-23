@@ -486,6 +486,13 @@ public static class Almanac
             IModel model = null;
             return container.TryGet(relativeKey, out model) ? ModelValue(model) : null;
         }
+        catch (NullReferenceException)
+        {
+            // Expected, and not a fault: a container that has no such field throws rather
+            // than answering false. Logging it filled the log with sixteen identical
+            // exceptions for one walk across a page.
+            return null;
+        }
         catch (Exception ex)
         {
             if (Settings.VerboseLogging.Value)

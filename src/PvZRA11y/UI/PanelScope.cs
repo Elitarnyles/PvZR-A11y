@@ -143,6 +143,26 @@ public static class PanelScope
     /// since they are not part of any screen and stay usable regardless of what is open.
     /// If everything on screen belongs to one panel, nothing is dropped.
     /// </summary>
+    /// <summary>
+    /// Panels whose own controls stay reachable while one of their pages is in front.
+    ///
+    /// The almanac's way out — back to the index, and out to the menu — lives on the
+    /// almanac panel itself, while the page you are reading is a separate panel shown on
+    /// top of it. Scoping strictly to the top panel therefore left a player inside a page
+    /// with no control that leads anywhere, which is a trap rather than an inconvenience
+    /// for someone who cannot see a mouse pointer.
+    ///
+    /// Deliberately a short, explicit table rather than a rule. Widening the scope by
+    /// guesswork is how this mod once put every level tile of an unopened carousel into
+    /// the control list.
+    /// </summary>
+    private static readonly Dictionary<string, string> ParentPanels = new(StringComparer.Ordinal)
+    {
+        ["almanacPlants"] = "almanac",
+        ["almanacZombies"] = "almanac",
+        ["almanacArchive"] = "almanac",
+    };
+
     private static List<Selectable> ScopeToTopPanel(List<Selectable> controls)
     {
         if (controls.Count == 0) return controls;
@@ -181,6 +201,15 @@ public static class PanelScope
 
         var result = new List<Selectable>(byPanel[topId].Count + unowned.Count);
         result.AddRange(byPanel[topId]);
+
+        // The page's own controls first, then the frame around it, so walking a grid does
+        // not start on a button that leaves the screen.
+        if (ParentPanels.TryGetValue(topId, out string parentId)
+            && byPanel.TryGetValue(parentId, out List<Selectable> parent))
+        {
+            result.AddRange(parent);
+        }
+
         result.AddRange(unowned);
         return result;
     }
