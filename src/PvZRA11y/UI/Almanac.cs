@@ -486,20 +486,25 @@ public static class Almanac
             IModel model = null;
             return container.TryGet(relativeKey, out model) ? ModelValue(model) : null;
         }
-        catch (NullReferenceException)
-        {
-            // Expected, and not a fault: a container that has no such field throws rather
-            // than answering false. Logging it filled the log with sixteen identical
-            // exceptions for one walk across a page.
-            return null;
-        }
         catch (Exception ex)
         {
-            if (Settings.VerboseLogging.Value)
-                Core.Log.Msg($"[almanac] \"{relativeKey}\" could not be read: {ex.Message}");
+            // Expected rather than a fault: the page's own Back and Close buttons sit under
+            // the same binder as the tiles and have no entry behind them, and asking a
+            // container for a field it does not have throws instead of answering no. It
+            // comes back wrapped, so it cannot be caught by type.
+            //
+            // Said once per key and message, then never again. Unfiltered it put three
+            // stack traces in the log for one walk across a page, and the log is the only
+            // channel that survives a mod which has gone quiet.
+            string once = relativeKey + ": " + ex.Message;
+            if (Settings.VerboseLogging.Value && ReportedReads.Add(once))
+                Core.Log.Msg($"[almanac] \"{relativeKey}\" is not on every control here ({ex.Message})");
+
             return null;
         }
     }
+
+    private static readonly HashSet<string> ReportedReads = new(StringComparer.Ordinal);
 
     private static string ModelValue(IModel model)
     {
