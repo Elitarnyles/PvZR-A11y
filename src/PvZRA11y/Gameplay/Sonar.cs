@@ -172,6 +172,78 @@ public static class Sonar
         return string.Join(", ", names);
     }
 
+    /// <summary>
+    /// Where a zombie standing on one square actually is, in board pixels.
+    ///
+    /// A square is a large thing and a zombie is not centred in it — in the mallet mini-game
+    /// they climb out of graves and stand wherever they stand. Swinging at the middle of the
+    /// square is aiming at the floor. This gives the thing itself to aim at.
+    /// </summary>
+    public static bool TryZombieAt(int row, int column, out float x, out float y, out string name)
+    {
+        x = 0f;
+        y = 0f;
+        name = null;
+
+        List<ZombieInfo> found = Collect(row);
+        if (found == null) return false;
+
+        bool any = false;
+        float bestX = 0f;
+
+        foreach (ZombieInfo info in found)
+        {
+            if (info.Column != column) continue;
+
+            // The one furthest along is the one about to do damage, so it is the one worth
+            // hitting when two share a square.
+            if (any && info.PosX >= bestX) continue;
+
+            bestX = info.PosX;
+            x = info.PosX;
+            y = info.PosY;
+            name = ShortName(info);
+            any = true;
+        }
+
+        return any;
+    }
+
+    /// <summary>
+    /// The zombie closest to a square, described as a place to walk to, or null when the
+    /// board holds none.
+    ///
+    /// For the mallet mini-game, where the targets appear and duck away again: a swing that
+    /// hits nothing is only useful if it also says where something is.
+    /// </summary>
+    public static string NearestZombieFrom(int row, int column)
+    {
+        List<ZombieInfo> all = Collect(null);
+        if (all == null || all.Count == 0) return null;
+
+        ZombieInfo best = default;
+        int bestDistance = int.MaxValue;
+        bool any = false;
+
+        foreach (ZombieInfo info in all)
+        {
+            if (info.Column < 0) continue;
+
+            // Rows count for more than columns: walking up and down is the slower move and
+            // the one worth being told about.
+            int distance = Math.Abs(info.Row - row) * 3 + Math.Abs(info.Column - column);
+            if (any && distance >= bestDistance) continue;
+
+            best = info;
+            bestDistance = distance;
+            any = true;
+        }
+
+        if (!any) return null;
+
+        return Strings.T("sonar.nearest", ShortName(best), best.Row + 1, best.Column + 1);
+    }
+
     /// <summary>Builds the terse line: count, then each zombie, column letter only when it changes.</summary>
     private static string Compose(List<ZombieInfo> found)
     {
@@ -303,7 +375,7 @@ public static class Sonar
     private enum Armour { None, Intact, Dinted, Damaged, Gone }
 
     private readonly record struct ZombieInfo(
-        ZombieType Type, int Row, int Column, float PosX,
+        ZombieType Type, int Row, int Column, float PosX, float PosY,
         bool Hypnotised, bool Frozen, bool Headless, Armour Armour);
 
     /// <summary>
@@ -385,6 +457,7 @@ public static class Sonar
                     row,
                     column,
                     posX,
+                    posY,
                     zombie.mMindControlled,
                     zombie.mIceTrapCounter > 0,
                     !zombie.mHasHead,

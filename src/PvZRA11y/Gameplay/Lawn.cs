@@ -1056,10 +1056,34 @@ public static class Lawn
         if (_board == null) return false;
         if (!TryGetPosition(out int x, out int y)) return false;
 
-        try { target = Sonar.DescribeZombiesAt(y, x); }
-        catch { /* the name is a courtesy; the swing matters more */ }
+        // Aim at the zombie, not at the middle of the square it happens to be standing in.
+        // A square is a large thing and one of these climbs out of a grave wherever it
+        // likes; the centre of the tile is very often just floor.
+        int px, py;
+        bool aimed = false;
 
-        if (!TryPixelForSquare(x, y, out int px, out int py))
+        try
+        {
+            if (Sonar.TryZombieAt(y, x, out float zx, out float zy, out string who))
+            {
+                target = who;
+                px = (int)Math.Round(zx);
+                py = (int)Math.Round(zy);
+                aimed = true;
+            }
+            else
+            {
+                target = null;
+                px = py = 0;
+            }
+        }
+        catch
+        {
+            target = null;
+            px = py = 0;
+        }
+
+        if (!aimed && !TryPixelForSquare(x, y, out px, out py))
         {
             Core.Log.Warning($"[lawn] no pixel position maps back to square {x},{y}; not swinging");
             return false;
@@ -1068,7 +1092,7 @@ public static class Lawn
         try
         {
             Core.Log.Msg($"[lawn] mallet at pixel {px},{py} for square {x},{y}" +
-                         $" (target: {target ?? "nothing"})");
+                         $" (target: {target ?? "nothing"}, aimed at the zombie: {aimed})");
             _board.MouseDownWithTool(px, py, 1, CursorType.Hammer, Player);
             _board.MouseUp(px, py, 1, Player);
             return true;

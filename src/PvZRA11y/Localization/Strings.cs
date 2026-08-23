@@ -110,6 +110,8 @@ public static class Strings
         ["lawn.cursor_lost"] = "Lost the lawn cursor.",
         ["lawn.swing_hit"] = "Hit {0}",
         ["lawn.swing_missed"] = "Swung at nothing",
+        ["lawn.swing_missed_near"] = "Swung at nothing. Nearest: {0}",
+        ["sonar.nearest"] = "{0}, row {1}, column {2}",
         ["lawn.cannot_swing"] = "Cannot swing here.",
         ["lawn.unreadable"] = "could not be read",
         ["note.unreadable"] = "The note could not be read.",

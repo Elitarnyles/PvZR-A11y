@@ -368,9 +368,26 @@ public static class LawnInput
             return true;
         }
 
-        Speech.Say(string.IsNullOrEmpty(target)
-            ? Strings.T("lawn.swing_missed")
-            : Strings.T("lawn.swing_hit", target), interrupt: true, context: "mallet", allowRepeat: true);
+        if (!string.IsNullOrEmpty(target))
+        {
+            Speech.Say(Strings.T("lawn.swing_hit", target),
+                       interrupt: true, context: "mallet", allowRepeat: true);
+            return true;
+        }
+
+        // A miss that only says "nothing there" leaves you no better off than before you
+        // swung. Where the nearest one is turns it into a direction to walk in.
+        string nearest = null;
+        try
+        {
+            if (Lawn.TryGetPosition(out int cx, out int cy)) nearest = Sonar.NearestZombieFrom(cy, cx);
+        }
+        catch { /* the miss is still worth saying without it */ }
+
+        Speech.Say(string.IsNullOrEmpty(nearest)
+                ? Strings.T("lawn.swing_missed")
+                : Strings.T("lawn.swing_missed_near", nearest),
+            interrupt: true, context: "mallet", allowRepeat: true);
         return true;
     }
 
