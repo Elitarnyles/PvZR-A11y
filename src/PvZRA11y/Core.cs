@@ -86,6 +86,7 @@ public class Core : MelonMod
         ("hotkeys",      Hotkeys.Update),
         ("screen",       ScreenTracker.Poll),
         ("notes",        Gameplay.Notes.Tick),
+        ("dialogue",     Gameplay.Dialogue.Tick),
         ("focus",        Focus.Update),
         ("text entry",   TextEntry.Update),
         ("messages",     Patches.MessagePatch.Tick),

@@ -94,6 +94,9 @@ public static class ScreenTracker
         if (string.IsNullOrEmpty(body)) return name;
 
         Core.Log.Msg($"[screen] \"{id}\" says: {body}");
+
+        // So the conversation watcher does not read the opening line a second time.
+        Gameplay.Dialogue.NoteSpokenElsewhere(body);
         return string.IsNullOrEmpty(name) ? body : name + ". " + body;
     }
 

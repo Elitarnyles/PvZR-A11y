@@ -347,6 +347,44 @@ public static class Lawn
     /// Moves the cursor one square. Returns false when it did not move, which means the
     /// edge of the lawn — worth a distinct sound rather than silence.
     /// </summary>
+    /// <summary>
+    /// Panels that are a character talking to you and nothing else.
+    ///
+    /// They carry no button. In the game you click anywhere to move the conversation on,
+    /// which leaves a keyboard player with nothing to press and a bubble that never ends.
+    /// </summary>
+    private static readonly HashSet<string> DialoguePanels = new(StringComparer.Ordinal)
+    {
+        "speechBubble",
+    };
+
+    /// <summary>True while a character is talking and the conversation is what Enter means.</summary>
+    public static bool DialogueInFront => DialoguePanels.Contains(PanelScope.FrontPanelId ?? "");
+
+    /// <summary>
+    /// Moves a character's dialogue on, the way clicking does.
+    ///
+    /// Returns false when there was nothing to advance. The game's own method reports
+    /// whether more text followed, which is also how the last line is recognised.
+    /// </summary>
+    public static bool AdvanceDialogue(out bool moreToCome)
+    {
+        moreToCome = false;
+        if (_app == null) return false;
+
+        try
+        {
+            moreToCome = _app.AdvanceCrazyDaveText();
+            Core.Log.Msg($"[dialogue] advanced; more to come: {moreToCome}");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Core.Log.Warning($"[dialogue] could not advance: {ex.Message}");
+            return false;
+        }
+    }
+
     private static Il2Cpp.TimeCycler _cycler;
 
     /// <summary>
