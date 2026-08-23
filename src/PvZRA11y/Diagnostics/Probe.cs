@@ -210,6 +210,8 @@ public static class Probe
     private static void AppendFiltered(StringBuilder sb)
     {
         var hidden = new List<string>();
+        var near = new List<string>();
+        string front = PanelScope.FrontPanelId;
 
         try
         {
@@ -230,8 +232,17 @@ public static class Probe
                         if (!reach.Reachable) reason = $"{reach.Reason} (panel {Or(reach.PanelId, "none")})";
                     }
 
-                    if (reason != null)
-                        hidden.Add($"  {UiText.SafeName(s)} — {reason}");
+                    if (reason == null) continue;
+
+                    string panelId = PanelScope.PanelIdOf(s) ?? "";
+
+                    // Controls belonging to the screen actually in front are listed in
+                    // full and first, however long the list runs. Everything else is
+                    // background - a menu still loaded behind an overlay contributes a
+                    // hundred entries and buries the one that matters.
+                    string line = $"  {UiText.SafeName(s)} — {reason}{RectOf(s)}";
+                    if (panelId == front || PanelScope.FrontPanelId == panelId) near.Add(line);
+                    else hidden.Add(line);
                 }
             }
         }
@@ -241,10 +252,32 @@ public static class Probe
             return;
         }
 
-        sb.AppendLine($"--- filtered out ({hidden.Count}) ---");
+        sb.AppendLine($"--- filtered out on \"{front ?? "<none>"}\" ({near.Count}) ---");
+        if (near.Count == 0) sb.AppendLine("  (none - every control of this screen is reachable)");
+        foreach (string line in near) sb.AppendLine(line);
+        sb.AppendLine();
+
+        sb.AppendLine($"--- filtered out elsewhere ({hidden.Count}) ---");
         int shown = Math.Min(hidden.Count, HiddenListLimit);
         for (int i = 0; i < shown; i++) sb.AppendLine(hidden[i]);
         if (hidden.Count > shown) sb.AppendLine($"  ... and {hidden.Count - shown} more");
+    }
+
+    /// <summary>Where a control actually sits, which is what the bounds test judges it on.</summary>
+    private static string RectOf(Selectable s)
+    {
+        try
+        {
+            var rect = s.transform.TryCast<RectTransform>();
+            if (rect == null) return "";
+
+            var corners = new Vector3[4];
+            rect.GetWorldCorners(corners);
+
+            return $"  [x {corners[0].x:0} to {corners[2].x:0}, y {corners[0].y:0} to {corners[2].y:0}" +
+                   $"; screen {Screen.width}x{Screen.height}]";
+        }
+        catch { return "  [rect unreadable]"; }
     }
 
     private static string Or(string value, string fallback)
