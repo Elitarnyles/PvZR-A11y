@@ -1091,10 +1091,29 @@ public static class Lawn
 
         try
         {
+            CursorType? held = CursorKind();
+
             Core.Log.Msg($"[lawn] mallet at pixel {px},{py} for square {x},{y}" +
-                         $" (target: {target ?? "nothing"}, aimed at the zombie: {aimed})");
-            _board.MouseDownWithTool(px, py, 1, CursorType.Hammer, Player);
-            _board.MouseUp(px, py, 1, Player);
+                         $" (target: {target ?? "nothing"}, aimed at the zombie: {aimed}," +
+                         $" cursor holds {held?.ToString() ?? "?"})");
+
+            // A plain click when the mallet is already in hand, which it is for the whole of
+            // this mini-game — that is the player's permanent tool, not something picked up
+            // per swing. Handing the board a click that carries the tool was a guess copied
+            // from the shovel, and it was wrong twice over: it fights whatever the game has
+            // already set up, and putting the tool down afterwards took the mallet away.
+            if (held == CursorType.Hammer)
+            {
+                _board.MouseDown(px, py, 1, Player);
+                _board.MouseUp(px, py, 1, Player);
+            }
+            else
+            {
+                _board.MouseDownWithTool(px, py, 1, CursorType.Hammer, Player);
+                _board.MouseUp(px, py, 1, Player);
+            }
+
+            Core.Log.Msg($"[lawn] after the swing the cursor holds {CursorKind()?.ToString() ?? "?"}");
             return true;
         }
         catch (Exception ex)

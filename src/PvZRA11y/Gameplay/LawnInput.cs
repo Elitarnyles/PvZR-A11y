@@ -358,9 +358,10 @@ public static class LawnInput
     {
         bool swung = Lawn.HammerAtCursor(out string target);
 
-        // Always, hit or miss: the tool is picked up by the attempt, and a tool left in hand
-        // makes the game refuse every later plant selection.
-        Lawn.PutToolDown();
+        // The mallet is deliberately NOT put down here, unlike the shovel. It is the
+        // player's tool for the whole mini-game, and taking it away after every swing left
+        // him swinging an empty hand from the second press onward. Nothing else on this
+        // level wants the cursor, so nothing is stranded by leaving it held.
 
         if (!swung)
         {
