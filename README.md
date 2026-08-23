@@ -13,9 +13,10 @@ them repeats something that was also spoken — turn them all off and you lose t
 not the information.
 
 **Status: version 0.1.0, playable and unfinished.** Menus, choosing a player, level select, the
-plant chooser, the lawn, planting, digging, the seed bank, the zombie scan, winning and the
-reward afterwards are all done and play-tested by a blind player. Still missing: the almanac,
-the store, the Zen Garden and the mini-games.
+plant chooser, the lawn, planting, digging, the seed bank, the zombie scan, Crazy Dave's
+conversations and the things he sells during them, the zombies' notes, the Suburban Almanac,
+winning and the reward afterwards are all done and play-tested by a blind player. Still missing:
+the store, the Zen Garden, and every mini-game except Whack a Zombie.
 
 Menus came first on purpose: reading the lawn is worth nothing if you cannot reach a level to
 stand on.
@@ -33,6 +34,10 @@ then it is not a Bucket-head problem any more. Sun and level progress are on the
 
 Before a level: which zombies the level can send, what kind of level it is, how many plant slots
 you have, and a one-line description of every plant you can choose.
+
+Elsewhere: Crazy Dave's dialogue, including the questions he asks and the price of what he is
+selling; the notes the zombies leave, which are pictures of handwritten letters with no text on
+screen at all; and the Suburban Almanac in full, every entry read out as the encyclopaedia it is.
 
 ## Requirements
 
@@ -139,6 +144,12 @@ so if you know that one you already know this.
 - **F3** — read the screen.
 - **F4** — what is selected, and how many slots are left.
 - **Minus** and **Equals** — move through the plants you have chosen.
+
+### In the almanac
+
+- **Arrow keys** — move between entries. **Enter** — open the one you are on.
+- **F4** — read the whole entry: name, cost, recharge and the full description.
+- **Tab** — reach the buttons around the page, including the way back out.
 
 ### Anywhere
 
