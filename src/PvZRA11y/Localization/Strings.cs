@@ -95,6 +95,7 @@ public static class Strings
         ["lawn.edge_right"] = "Rightmost column.",
         ["lawn.cursor_lost"] = "Lost the lawn cursor.",
         ["lawn.unreadable"] = "could not be read",
+        ["note.unreadable"] = "The note could not be read.",
         ["sonar.unreadable"] = "The lawn could not be read.",
         ["speed.normal"] = "Normal speed.",
         ["speed.faster"] = "Speed {0} times.",

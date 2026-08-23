@@ -9,3 +9,6 @@ obj/
 
 # Working notes, in Polish, not part of the release.
 PRZEGLAD-*.md
+
+# Extracted game data and the scripts that pull it. Not ours to publish.
+.local/

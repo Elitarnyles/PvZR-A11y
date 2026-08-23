@@ -85,6 +85,7 @@ public class Core : MelonMod
         ("board",        Gameplay.Lawn.TickBoardLifetime),
         ("hotkeys",      Hotkeys.Update),
         ("screen",       ScreenTracker.Poll),
+        ("notes",        Gameplay.Notes.Tick),
         ("focus",        Focus.Update),
         ("text entry",   TextEntry.Update),
         ("messages",     Patches.MessagePatch.Tick),
