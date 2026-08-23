@@ -42,11 +42,11 @@ public static class SelfTest
 
         Section(sb, "speech", CheckSpeech);
         Section(sb, "audio", CheckAudio);
-        Section(sb, "board", CheckBoard);
-        Section(sb, "geometry", CheckGeometry);
-        Section(sb, "cursor", CheckCursor);
-        Section(sb, "seed bank", CheckSeedBank);
-        Section(sb, "zombies", CheckZombies);
+        LawnSection(sb, "board", CheckBoard);
+        LawnSection(sb, "geometry", CheckGeometry);
+        LawnSection(sb, "cursor", CheckCursor);
+        LawnSection(sb, "seed bank", CheckSeedBank);
+        LawnSection(sb, "zombies", CheckZombies);
         Section(sb, "plant chooser", Gameplay.SeedChooser.Dump);
         Section(sb, "notes", Gameplay.Notes.Check);
         Section(sb, "panels", CheckPanels);
@@ -82,6 +82,27 @@ public static class SelfTest
             Fail($"{title} section threw: {ex.Message}");
         }
         sb.AppendLine();
+    }
+
+    /// <summary>
+    /// A section that only means anything on a lawn.
+    ///
+    /// Run in a menu, these used to report the board, the cursor and the seed bank as
+    /// failures — three alarming lines about things that are simply not there yet. This is
+    /// the tool someone reaches for when they are already stuck, and sending them hunting a
+    /// problem that does not exist is worse than saying nothing.
+    /// </summary>
+    private static void LawnSection(StringBuilder sb, string title, Action<StringBuilder> body)
+    {
+        if (!Lawn.IsOnBoard)
+        {
+            sb.AppendLine($"---- {title} ----");
+            sb.AppendLine("  not on a lawn, so there is nothing here to check");
+            sb.AppendLine();
+            return;
+        }
+
+        Section(sb, title, body);
     }
 
     private static void Fail(string what) => Failures.Add(what);
