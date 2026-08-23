@@ -70,6 +70,11 @@ public static class Lawn
         // The board is already built behind the plant chooser, so without this the arrow
         // keys would walk the lawn while the player is trying to pick a deck.
         "seedChooser",
+
+        // The game's generic yes/no message box. Modal, and the lawn is usually still
+        // there underneath it.
+        "dialog",
+        "dialogZengarden",
     };
 
     private static bool _lastHadInput = true;
@@ -358,11 +363,69 @@ public static class Lawn
         "speechBubble",
     };
 
-    /// <summary>When the end of a message was last announced, so a second press can close it.</summary>
-    private static long _endOfMessageAt = long.MinValue;
+    /// <summary>
+    /// When the end of a message was last announced, so a second press can close it.
+    ///
+    /// Zero for "not waiting", never long.MinValue: the window test subtracts this from
+    /// Environment.TickCount64, and subtracting long.MinValue overflows to a negative
+    /// number, which made the guard false on the very first press. The two-step close this
+    /// was written for therefore never once happened — "waiting for a second press" appears
+    /// in no log on this machine, while "closed on a second press" appears three times.
+    /// </summary>
+    private static long _endOfMessageAt;
 
     /// <summary>How long that second press stays available.</summary>
     private const long EndOfMessageWindowMs = 4000;
+
+    /// <summary>
+    /// Ends a conversation the way the game does, not the way that was convenient.
+    ///
+    /// The mod used to call CrazyDaveLeave, which simply sends the character away. That is a
+    /// passthrough to the service that owns his bubble, his animation and his sound, and
+    /// nothing else — so when Crazy Dave offered to sell an extra seed slot, the offer went
+    /// away with him and the player never saw the question. He reported it as "I cannot get
+    /// to the buttons", and he was right that there are buttons: the game has a yes/no
+    /// message box on the panel id "dialog", with the price given in the line just before it.
+    ///
+    /// The decision to raise that box lives a layer up, on the cut scene, in the method that
+    /// also owns CanGetPacketUpgrade. Calling it lets the game decide what the end of a
+    /// conversation means — dismiss it, or put a question up — which is the whole point.
+    /// </summary>
+    private static bool FinishConversation(CrazyDaveState state)
+    {
+        CutScene scene = null;
+        try { scene = _board?.mCutScene; } catch { /* fall through to the old route */ }
+
+        if (scene != null)
+        {
+            try
+            {
+                scene.AdvanceCrazyDaveDialog(true);
+                Core.Log.Msg($"[dialogue] handed the end of the conversation to the cut scene (was {state})");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Core.Log.Warning($"[dialogue] the cut scene refused: {ex.Message}");
+            }
+        }
+
+        // Last resort. This is the call that used to throw offers away, so it is only made
+        // when the proper route is not there at all, and it says so in the log.
+        if (_app == null) return false;
+
+        try
+        {
+            _app.CrazyDaveLeave();
+            Core.Log.Msg($"[dialogue] no cut scene; sent him away instead (was {state})");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Core.Log.Warning($"[dialogue] could not end the conversation: {ex.Message}");
+            return false;
+        }
+    }
 
     /// <summary>The kind of dialog on screen, for the log, without risking a throw.</summary>
     private static string SafeDialogType(Dialog dialog)
@@ -397,7 +460,7 @@ public static class Lawn
             moreToCome = _app.AdvanceCrazyDaveText();
             if (moreToCome)
             {
-                _endOfMessageAt = long.MinValue;
+                _endOfMessageAt = 0;
                 Core.Log.Msg("[dialogue] advanced to the next line");
                 return true;
             }
@@ -430,7 +493,7 @@ public static class Lawn
             // wants to put on screen — a question, a price, a pair of buttons — has the gap
             // between them to appear in, and if it does the first branch above catches it.
             long now = Environment.TickCount64;
-            if (now - _endOfMessageAt > EndOfMessageWindowMs)
+            if (_endOfMessageAt == 0 || now - _endOfMessageAt > EndOfMessageWindowMs)
             {
                 _endOfMessageAt = now;
                 Core.Log.Msg($"[dialogue] last line (state {state}); waiting for a second press before closing");
@@ -438,10 +501,8 @@ public static class Lawn
                 return true;
             }
 
-            _endOfMessageAt = long.MinValue;
-            _app.CrazyDaveLeave();
-            Core.Log.Msg($"[dialogue] closed on a second press (was {state})");
-            return true;
+            _endOfMessageAt = 0;
+            return FinishConversation(state);
         }
         catch (Exception ex)
         {
