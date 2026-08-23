@@ -49,22 +49,22 @@ public static class SeedChooser
     /// <summary>
     /// Every zombie this level can send.
     ///
-    /// This took three attempts, and the reason is worth writing down. The level's own
-    /// ZombieTypes array declares Zombie, Flag and Cone-head for level 1-8, and the level
-    /// sends Bucket-heads. Board.CanZombieSpawnOnLevel, asked about all forty-two types,
-    /// answered with a subset of that same array — so the two were never independent sources
-    /// at all, and merging them could only ever reproduce one short list.
+    /// The level's own list is the answer, and it took two wrong turns to be sure of that.
     ///
-    /// What finally sits outside that chain is the game's own zombie table: every
-    /// ZombieDefinition carries the level it debuts on. Bucket-head's says level 8, which is
-    /// where it was heard. So the candidates are gathered from every source the game will
-    /// answer to, including that table, and then filtered by asking the board whether any row
-    /// on it could actually hold each one — which is what keeps pool zombies off a day lawn.
+    /// It looked incomplete: level 1-8 declares Zombie, Flag and Cone-head, and a Bucket-head
+    /// seemed to turn up anyway. So the mod started adding every zombie whose definition said
+    /// it had debuted by this level. That was wrong. Reading the shipped level table settles
+    /// it — 1-7 and 1-9 do include Bucket-heads and 1-8 genuinely does not, and the sighting
+    /// came from somewhere else. The debut rule then over-reported everywhere: it offered
+    /// Cone-heads, Pole-vaulters and Bucket-heads on level 2-1, which sends Zombies, Flags
+    /// and Newspapers and nothing else.
     ///
-    /// Each source is logged on its own line. Two of them have now been caught quietly
-    /// returning a short list rather than failing, so "it answered" is not evidence that it
-    /// answered fully, and the next disagreement should be visible without another play
-    /// session spent finding it.
+    /// Every level in the game carries its own hand-picked set. Nothing needs deriving.
+    ///
+    /// The other sources are still asked, and still logged, but no longer believed. Two of
+    /// them return a subset of the level's list and two return something else entirely —
+    /// GetIntroducedZombieType answers Pail on level 8, which is what sent this astray, and
+    /// whatever it means it is not "what this level sends".
     /// </summary>
     private static List<string> ZombieTypesInLevel()
     {
@@ -80,7 +80,10 @@ public static class SeedChooser
         int levelNumber = 0;
         try { if (board != null) levelNumber = board.mLevel; } catch { }
 
-        // The level's own declared list. Never names a wrong zombie; known to miss some.
+        // --- believed ---------------------------------------------------------------
+        // Three ways of asking for the same authored list. Merged rather than one picked,
+        // so that a single one being unavailable cannot leave the player with nothing.
+
         sources.Add(Gather("level data", candidates, add =>
         {
             var declared = level?.ZombieTypes;
@@ -89,7 +92,6 @@ public static class SeedChooser
             return true;
         }));
 
-        // The activity keeps its own copy, which need not be the same array.
         sources.Add(Gather("activity", candidates, add =>
         {
             var types = app?.ZombieTypes;
@@ -98,7 +100,6 @@ public static class SeedChooser
             return true;
         }));
 
-        // The game asked one type at a time, three different ways.
         sources.Add(Gather("level has", candidates, add =>
         {
             if (app == null || level == null) return false;
@@ -106,14 +107,21 @@ public static class SeedChooser
             return true;
         }));
 
-        sources.Add(Gather("can spawn", candidates, add =>
+        // --- logged only ------------------------------------------------------------
+        // Kept because a disagreement here is worth seeing. Deliberately not merged in:
+        // the first two answer with a subset, and the last two with something that is not
+        // this question.
+
+        var ignored = new HashSet<ZombieType>();
+
+        sources.Add("(not spoken) " + Gather("can spawn", ignored, add =>
         {
             if (board == null) return false;
             ForEachType(t => { if (board.CanZombieSpawnOnLevel(t, levelNumber)) add(t); });
             return true;
         }));
 
-        sources.Add(Gather("allowed", candidates, add =>
+        sources.Add("(not spoken) " + Gather("allowed", ignored, add =>
         {
             var allowed = board?.mZombieAllowed;
             if (allowed == null) return false;
@@ -122,37 +130,18 @@ public static class SeedChooser
             return true;
         }));
 
-        sources.Add(Gather("introduced", candidates, add =>
+        sources.Add("(not spoken) " + Gather("introduced", ignored, add =>
         {
             if (board == null) return false;
             add(board.GetIntroducedZombieType());
             return true;
         }));
 
-        // The zombie table: each definition names the level its zombie first appears on.
-        // The only source here that does not read the level's authored list.
-        sources.Add(Gather("debut by level " + levelNumber, candidates, add =>
-        {
-            if (app == null || levelNumber <= 0) return false;
-            ForEachType(t =>
-            {
-                ZombieDefinition def = app.GetZombieDefinition(t);
-                if (def == null) return;
-
-                // Weight zero means the picker never draws it. The ones that turn up anyway,
-                // like the flag zombie, are named by one of the sources above.
-                if (def.Weight <= 0) return;
-
-                int debut = def.FirstLevel;
-                if (debut > 0 && debut <= levelNumber) add(t);
-            });
-            return true;
-        }));
-
-        var kept = FilterToThisBoard(board, candidates, out var dropped);
+        var ordered = new List<ZombieType>(candidates);
+        ordered.Sort((a, b) => ((int)a).CompareTo((int)b));
 
         var names = new List<string>();
-        foreach (ZombieType type in kept) names.Add(ShortZombieName(type));
+        foreach (ZombieType type in ordered) names.Add(ShortZombieName(type));
 
         if (Config.Settings.VerboseLogging.Value)
         {
@@ -161,8 +150,6 @@ public static class SeedChooser
 
             Core.Log.Msg($"[chooser] zombies for \"{title}\" (mLevel {levelNumber})");
             foreach (string line in sources) Core.Log.Msg("[chooser]   " + line);
-            if (dropped.Count > 0)
-                Core.Log.Msg($"[chooser]   no row can hold : {NamesOf(dropped)}");
             Core.Log.Msg($"[chooser]   spoken ({names.Count}): {string.Join(", ", names)}");
         }
 
@@ -200,48 +187,6 @@ public static class SeedChooser
 
         string added = fresh.Count == 0 ? "" : $"   [+{NamesOf(fresh)}]";
         return $"{label,-22}: ({mine.Count}) {NamesOf(mine)}{added}";
-    }
-
-    /// <summary>
-    /// Drops anything no row of this board could hold.
-    ///
-    /// The zombie table says when a zombie debuts, not where, so on a daytime lawn it will
-    /// happily offer the ones that swim. The board knows better and is asked directly.
-    /// A type is kept whenever the board declines to answer: announcing one zombie too many
-    /// costs a moment, and missing one costs the level.
-    /// </summary>
-    private static List<ZombieType> FilterToThisBoard(Board board, HashSet<ZombieType> candidates, out List<ZombieType> dropped)
-    {
-        dropped = new List<ZombieType>();
-
-        var ordered = new List<ZombieType>(candidates);
-        ordered.Sort((a, b) => ((int)a).CompareTo((int)b));
-
-        int rows = 0;
-        try { if (board != null) rows = board.GetNumRows(); } catch { }
-        if (board == null || rows <= 0) return ordered;
-
-        var kept = new List<ZombieType>();
-        foreach (ZombieType type in ordered)
-        {
-            bool anyRow = false;
-            bool asked = true;
-
-            for (int row = 0; row < rows; row++)
-            {
-                try
-                {
-                    if (board.RowCanHaveZombieType(row, type)) { anyRow = true; break; }
-                }
-                catch { asked = false; break; }
-            }
-
-            if (!asked || anyRow) kept.Add(type);
-            else dropped.Add(type);
-        }
-
-        // If the filter rejected everything, it is the filter that is wrong, not the level.
-        return kept.Count == 0 ? ordered : kept;
     }
 
     private static void ForEachType(Action<ZombieType> body)
