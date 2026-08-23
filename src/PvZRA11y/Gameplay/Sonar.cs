@@ -77,7 +77,10 @@ public static class Sonar
         List<ZombieInfo> found = Collect(row);
         if (found == null)
         {
-            Speech.SayVerbatim(Strings.T("lawn.no_board"), "sonar");
+            // Not "Not on a lawn": IsOnBoard was checked a few lines up and said yes. The
+            // board is there and could not be read, and telling the player they are not on a
+            // lawn contradicts the one thing they cannot check any other way.
+            Speech.SayVerbatim(Strings.T("sonar.unreadable"), "sonar");
             return;
         }
 
@@ -107,7 +110,7 @@ public static class Sonar
         List<ZombieInfo> all = Collect(null);
         if (all == null)
         {
-            Speech.SayVerbatim(Strings.T("lawn.no_board"), "sonar rows");
+            Speech.SayVerbatim(Strings.T("sonar.unreadable"), "sonar rows");
             return;
         }
 
@@ -119,6 +122,11 @@ public static class Sonar
 
         if (rows.Count == 0)
         {
+            // An empty result after losing zombies is not a clear lawn. This branch returns
+            // before ReportSkipped further down would ever run, so the note has to be made
+            // here — and instead of "all clear", never beside it.
+            if (LastSkipped > 0) { ReportSkipped("sonar rows"); return; }
+
             Speech.SayVerbatim(Strings.T("sonar.all_clear"), "sonar rows");
             return;
         }
@@ -330,14 +338,15 @@ public static class Sonar
     {
         var result = new List<ZombieInfo>();
         LastSkipped = 0;
+        LastCollectFailed = false;
 
         Board board = Lawn.BoardRef;
-        if (board == null) return null;
+        if (board == null) { LastCollectFailed = true; return null; }
 
         try
         {
             var zombies = board.m_zombies;
-            if (zombies == null) return null;
+            if (zombies == null) { LastCollectFailed = true; return null; }
 
             bool verbose = Settings.VerboseLogging.Value;
 
@@ -400,6 +409,7 @@ public static class Sonar
             // indistinguishable from a genuinely clear lawn, and answering "All clear" for a
             // board that failed is a confident lie about the one thing the player asked.
             Core.Log.Warning($"Could not read the zombies: {ex.Message}");
+            LastCollectFailed = true;
             return null;
         }
 
@@ -407,7 +417,17 @@ public static class Sonar
     }
 
     /// <summary>Zombies dropped by the last Collect. Non-zero means the answer was short.</summary>
-    private static int LastSkipped;
+    internal static int LastSkipped;
+
+    /// <summary>
+    /// True when the last Collect could not read the board at all.
+    ///
+    /// Separate from LastSkipped, which counts zombies lost one at a time. Both mean the
+    /// answer is not to be trusted, and a caller that has no other way to know must be able
+    /// to ask — otherwise an unreadable board comes out as an empty one, which sounds like a
+    /// perfectly good answer.
+    /// </summary>
+    internal static bool LastCollectFailed;
 
 
     private static string ZombieName(ZombieType type)

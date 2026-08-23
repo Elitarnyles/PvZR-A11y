@@ -490,8 +490,19 @@ public static class Lawn
     /// what the ground is, whether the plant in hand could go there, and whether the row
     /// still has its mower.
     /// </summary>
+    /// <summary>
+    /// Set by anything in a square description that could not be read.
+    ///
+    /// Cleared at the top of every DescribeSquare, so it never leaks from one square to the
+    /// next. It exists because a failed read looks exactly like an empty square: the plant
+    /// comes back null, the ground comes back null, the zombie list comes back null, and
+    /// "empty" is the honest answer to all three only when nothing threw.
+    /// </summary>
+    private static bool _readFailed;
+
     public static string DescribeSquare(int x, int y)
     {
+        _readFailed = false;
         if (_board == null) return null;
 
         var parts = new List<string>(4);
@@ -500,6 +511,7 @@ public static class Lawn
 
         // Zombies standing here are part of what is on the square, not a separate question.
         string standing = Sonar.DescribeZombiesAt(y, x);
+        if (Sonar.LastCollectFailed || Sonar.LastSkipped > 0) _readFailed = true;
 
         if (!string.IsNullOrEmpty(occupant))
         {
@@ -514,6 +526,7 @@ public static class Lawn
             string ground = GroundOf(x, y);
 
             if (!string.IsNullOrEmpty(ground)) parts.Add(ground);
+            else if (_readFailed) parts.Add(Strings.T("lawn.unreadable"));
             else if (string.IsNullOrEmpty(standing)) parts.Add(Strings.T("lawn.empty"));
         }
 
@@ -549,6 +562,7 @@ public static class Lawn
         catch (Exception ex)
         {
             Core.Log.Warning($"Could not read square {x},{y}: {ex.Message}");
+            _readFailed = true;
         }
         return null;
     }
@@ -613,6 +627,7 @@ public static class Lawn
         catch (Exception ex)
         {
             Core.Log.Warning($"Could not read the ground at {x},{y}: {ex.Message}");
+            _readFailed = true;
         }
         return null;
     }

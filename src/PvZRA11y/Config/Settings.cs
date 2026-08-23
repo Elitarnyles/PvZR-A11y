@@ -121,16 +121,16 @@ public static class Settings
         // where you are. Taken from the original PvZ accessibility mod so that anyone who
         // knows that one already knows this.
         KeyInfo1 = cat.CreateEntry("KeyInfo1", "F1",
-            description: "On the lawn: scan your row for zombies. Press twice quickly for which rows have any. Elsewhere: repeat the last announcement.");
+            description: "On the lawn: scan your row for zombies. Press twice quickly for which rows have any. In the plant chooser: which zombies this level sends. Elsewhere: repeat the last announcement.");
         KeyInfo2 = cat.CreateEntry("KeyInfo2", "F2",
-            description: "On the lawn: full report on the square under the cursor. Elsewhere: say the current screen and what has focus.");
+            description: "On the lawn: full report on the square under the cursor. In the plant chooser: what kind of level this is. Elsewhere: say the current screen and what has focus.");
         KeyInfo3 = cat.CreateEntry("KeyInfo3", "F3",
-            description: "On the lawn: say how much sun you have. Elsewhere: read out the whole screen.");
+            description: "On the lawn: say how much sun you have. In the plant chooser, and elsewhere: read out the whole screen.");
         KeyInfo4 = cat.CreateEntry("KeyInfo4", "F4",
-            description: "On the lawn: say how far through the level you are. Elsewhere: read out the whole screen.");
+            description: "On the lawn: say how far through the level you are. In the plant chooser: the plant you are on, and how many slots are left. Elsewhere: read out the whole screen.");
 
         KeyStartLevel = cat.CreateEntry("KeyStartLevel", "F6",
-            description: "Start the level from the plant chooser. Not Escape, which this game already uses to pause.");
+            description: "In the plant chooser: start the level. On the lawn: read the whole seed bank without changing what is in your hand. Not Escape, which this game already uses to pause.");
         KeyFreeze = cat.CreateEntry("KeyFreeze", "F5",
             description: "Stop and restart the clock. While frozen you can still walk the lawn, read squares and plant - the zombies simply wait.");
         KeyShovel = cat.CreateEntry("KeyShovel", "Backspace",
