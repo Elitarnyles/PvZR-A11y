@@ -287,6 +287,53 @@ public static class PanelScope
     /// This is what catches the main menu's hidden sections: they stay active and fully
     /// opaque, but sit outside the viewport or are scaled down to nothing.
     /// </summary>
+    /// <summary>
+    /// Where a control's children land, for controls that have no size of their own.
+    ///
+    /// Only ever widens: it is consulted after the control's own rectangle has already been
+    /// judged too small to be real. Anything still empty afterwards is genuinely not there.
+    /// </summary>
+    private static bool TryChildrenRect(RectTransform parent, Camera camera, out Rect rect)
+    {
+        rect = default;
+
+        float minX = float.MaxValue, minY = float.MaxValue;
+        float maxX = float.MinValue, maxY = float.MinValue;
+        bool any = false;
+
+        try
+        {
+            var children = parent.GetComponentsInChildren<RectTransform>(false);
+            if (children == null) return false;
+
+            var corners = new Il2CppStructArray<Vector3>(4);
+
+            for (int c = 0; c < children.Length; c++)
+            {
+                RectTransform child = children[c];
+                if (child == null) continue;
+
+                child.GetWorldCorners(corners);
+
+                for (int i = 0; i < 4; i++)
+                {
+                    Vector2 p = RectTransformUtility.WorldToScreenPoint(camera, corners[i]);
+                    if (p.x < minX) minX = p.x;
+                    if (p.y < minY) minY = p.y;
+                    if (p.x > maxX) maxX = p.x;
+                    if (p.y > maxY) maxY = p.y;
+                    any = true;
+                }
+            }
+        }
+        catch { return false; }
+
+        if (!any) return false;
+
+        rect = Rect.MinMaxRect(minX, minY, maxX, maxY);
+        return true;
+    }
+
     public static bool TryScreenRect(Selectable selectable, out Rect rect)
     {
         rect = default;
@@ -315,7 +362,15 @@ public static class PanelScope
 
             rect = Rect.MinMaxRect(minX, minY, maxX, maxY);
 
-            if (rect.width < MinScreenSize || rect.height < MinScreenSize) return false;
+            // A control whose own rectangle is nothing may still be perfectly visible: the
+            // button is an empty container and the thing you see is a child of it. The
+            // almanac's close button is exactly that, and rejecting it left a blind player
+            // inside a screen with no way out of it.
+            if (rect.width < MinScreenSize || rect.height < MinScreenSize)
+            {
+                if (!TryChildrenRect(rt, camera, out rect)) return false;
+                if (rect.width < MinScreenSize || rect.height < MinScreenSize) return false;
+            }
 
             var screen = new Rect(0f, 0f, Screen.width, Screen.height);
             return rect.Overlaps(screen);

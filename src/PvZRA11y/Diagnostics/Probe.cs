@@ -263,19 +263,22 @@ public static class Probe
         if (hidden.Count > shown) sb.AppendLine($"  ... and {hidden.Count - shown} more");
     }
 
-    /// <summary>Where a control actually sits, which is what the bounds test judges it on.</summary>
+    /// <summary>
+    /// Where the bounds test thinks a control sits.
+    ///
+    /// Asks the test itself rather than measuring again. The first version of this measured
+    /// separately, with a managed array where the interop one was needed, and reported every
+    /// control as zero by zero — a diagnostic that agreed with the thing it was meant to
+    /// check, which is the least useful kind of wrong.
+    /// </summary>
     private static string RectOf(Selectable s)
     {
         try
         {
-            var rect = s.transform.TryCast<RectTransform>();
-            if (rect == null) return "";
-
-            var corners = new Vector3[4];
-            rect.GetWorldCorners(corners);
-
-            return $"  [x {corners[0].x:0} to {corners[2].x:0}, y {corners[0].y:0} to {corners[2].y:0}" +
-                   $"; screen {Screen.width}x{Screen.height}]";
+            bool ok = PanelScope.TryScreenRect(s, out Rect rect);
+            return $"  [{rect.xMin:0},{rect.yMin:0} to {rect.xMax:0},{rect.yMax:0}" +
+                   $"  {rect.width:0}x{rect.height:0}; screen {Screen.width}x{Screen.height}" +
+                   $"; bounds {(ok ? "pass" : "fail")}]";
         }
         catch { return "  [rect unreadable]"; }
     }
