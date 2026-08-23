@@ -282,6 +282,15 @@ public static class UiText
         bool inTag = false;
         bool lastWasSpace = false;
 
+        // Some labels carry escape sequences that were never turned into characters: the
+        // main menu's almanac button is literally "the\nsuburban\nalmanac", backslash and
+        // letter n, four characters that no whitespace test will ever match. Spoken, it came
+        // out as "the backslash n suburban backslash n almanac".
+        text = text.Replace("\\r\\n", " ")
+                   .Replace("\\n", " ")
+                   .Replace("\\r", " ")
+                   .Replace("\\t", " ");
+
         foreach (char c in text)
         {
             if (c == '<') { inTag = true; continue; }
