@@ -1,0 +1,11 @@
+bin/
+obj/
+*.user
+*.suo
+.vs/
+.idea/
+*.zip
+.vscode/
+
+# Working notes, in Polish, not part of the release.
+PRZEGLAD-*.md

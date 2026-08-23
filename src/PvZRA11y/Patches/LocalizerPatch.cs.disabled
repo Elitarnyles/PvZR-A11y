@@ -1,0 +1,76 @@
+using HarmonyLib;
+using Il2CppTekly.Localizations;
+
+namespace PvZRA11y.Patches;
+
+/// <summary>
+/// Catches hold of the game's translator.
+///
+/// Several things the game hands us are not text but keys into its string table:
+/// "REPEATER_TOOLTIP", "[ADVICE_CLICK_SHOVEL]". Spoken aloud they are gibberish, and the
+/// resolved sentence is often nowhere else to be found — a plant's tooltip never appears on
+/// screen at all unless you hover it with a mouse.
+///
+/// There is no way to ask for the translator: no static instance, no service that exposes
+/// it. But the game translates something on almost every frame, so it goes past constantly
+/// and can simply be taken as it does. The postfix does nothing but store the first one it
+/// sees, because it runs extremely often.
+/// </summary>
+[HarmonyPatch(typeof(Localizer))]
+internal static class LocalizerPatch
+{
+    [HarmonyPatch(nameof(Localizer.Localize), typeof(string))]
+    [HarmonyPostfix]
+    private static void Localize_Postfix(Localizer __instance)
+    {
+        if (Localisation.Translator == null) Localisation.Translator = __instance;
+    }
+}
+
+/// <summary>Turns the game's string-table keys into the player's language.</summary>
+public static class Localisation
+{
+    internal static Localizer Translator { get; set; }
+
+    public static bool Ready => Translator != null;
+
+    /// <summary>
+    /// Resolves a key, or returns null when it cannot be resolved.
+    ///
+    /// Null rather than the key itself: a caller can then fall back to something readable,
+    /// where speaking "REPEATER_TOOLTIP" would only sound like a working feature.
+    /// </summary>
+    public static string Resolve(string key)
+    {
+        if (string.IsNullOrWhiteSpace(key)) return null;
+        if (Translator == null) return null;
+
+        try
+        {
+            if (!Translator.ContainsId(key)) return null;
+
+            string text = Translator.Localize(key);
+            return string.IsNullOrWhiteSpace(text) || text == key ? null : text;
+        }
+        catch (Exception ex)
+        {
+            Core.Log.Warning($"Could not translate \"{key}\": {ex.Message}");
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Resolves a value that may be either a key or already-translated text. Anything that
+    /// is not a known key is passed through untouched.
+    /// </summary>
+    public static string ResolveOrKeep(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return value;
+
+        // Keys in this game are upper-case with underscores, sometimes in brackets.
+        string key = value.Trim();
+        if (key.Length > 1 && key[0] == '[' && key[^1] == ']') key = key[1..^1];
+
+        return Resolve(key) ?? value;
+    }
+}

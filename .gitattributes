@@ -1,0 +1,9 @@
+# Normalise line endings so a checkout on Linux or macOS does not show the whole
+# tree as modified. Working copies still get the platform's native endings.
+* text=auto eol=lf
+
+*.sln text eol=crlf
+*.csproj text eol=crlf
+*.props text eol=crlf
+
+*.dll binary

@@ -1,0 +1,61 @@
+using HarmonyLib;
+using Il2CppReloaded.TreeStateActivities;
+using PvZRA11y.A11y;
+using PvZRA11y.Localization;
+
+namespace PvZRA11y.Patches;
+
+/// <summary>
+/// Announces the game speed changing.
+///
+/// The game puts fast-forward on Tab and shows the current multiplier as a small number on
+/// screen. A player who cannot see that number has no way of telling whether the last press
+/// sped the game up or put it back, which matters: at double speed a row can be overrun in
+/// the time it takes to read it.
+///
+/// This is also why the mod leaves Tab alone once play starts. Tab was being used here for
+/// walking between controls, which on the lawn is pointless anyway — the arrow keys move
+/// the grid cursor — and it was quietly fighting the game's own binding.
+/// </summary>
+[HarmonyPatch(typeof(GameplayActivity))]
+internal static class GameSpeedPatch
+{
+    private static bool _fast;
+    private static bool _slow;
+
+    /// <summary>Forgets the speed, for when a new level starts at normal pace.</summary>
+    public static void Reset()
+    {
+        _fast = false;
+        _slow = false;
+    }
+
+    [HarmonyPatch(nameof(GameplayActivity.ToggleFastMo))]
+    [HarmonyPostfix]
+    private static void ToggleFastMo_Postfix()
+    {
+        _fast = !_fast;
+        if (_fast) _slow = false;
+        Announce();
+    }
+
+    [HarmonyPatch(nameof(GameplayActivity.ToggleSlowMo))]
+    [HarmonyPostfix]
+    private static void ToggleSlowMo_Postfix()
+    {
+        _slow = !_slow;
+        if (_slow) _fast = false;
+        Announce();
+    }
+
+    /// <summary>
+    /// The state is tracked here rather than read back from the game, which exposes no way
+    /// to ask. Both toggles are patched, so the only paths that can change it are covered.
+    /// </summary>
+    private static void Announce()
+    {
+        string key = _fast ? "speed.fast" : _slow ? "speed.slow" : "speed.normal";
+        Core.Log.Msg($"[speed] {(_fast ? "fast" : _slow ? "slow" : "normal")}");
+        Speech.Say(Strings.T(key), interrupt: true, context: "game speed");
+    }
+}

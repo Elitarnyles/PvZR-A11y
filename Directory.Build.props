@@ -1,0 +1,17 @@
+<Project>
+
+  <!--
+    Path to the game install. Everything the mod compiles against lives under here:
+      <GameDir>\MelonLoader\Il2CppAssemblies\   generated interop assemblies (game + Unity)
+      <GameDir>\MelonLoader\net6\               MelonLoader, Harmony, Il2CppInterop
+      <GameDir>\Mods\                           build output is copied here
+
+    Override without editing this file:
+      dotnet build -p:GameDir="D:\SteamLibrary\steamapps\common\PVZ Replanted\"
+    The trailing backslash is required.
+  -->
+  <PropertyGroup>
+    <GameDir Condition="'$(GameDir)' == ''">C:\Program Files (x86)\Steam\steamapps\common\PVZ Replanted\</GameDir>
+  </PropertyGroup>
+
+</Project>
