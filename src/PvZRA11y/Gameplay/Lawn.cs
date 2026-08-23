@@ -398,15 +398,41 @@ public static class Lawn
 
         if (scene != null)
         {
-            try
+            // Which upgrade, not whether to show one. The cut scene owns both
+            // CanGetPacketUpgrade and CanGetSecondPacketUpgrade, and the single bool almost
+            // certainly picks between them. Passing true first time round asked for the
+            // second upgrade, which is not available this early, so nothing was raised and
+            // the conversation simply ended — exactly what it looked like from outside.
+            bool first = SafeCall(() => scene.CanGetPacketUpgrade(), "CanGetPacketUpgrade");
+            bool second = SafeCall(() => scene.CanGetSecondPacketUpgrade(), "CanGetSecondPacketUpgrade");
+            Core.Log.Msg($"[dialogue] upgrades available — first: {first}, second: {second}");
+
+            if (first || second)
             {
-                scene.AdvanceCrazyDaveDialog(true);
-                Core.Log.Msg($"[dialogue] handed the end of the conversation to the cut scene (was {state})");
-                return true;
+                try
+                {
+                    scene.AdvanceCrazyDaveDialog(second && !first);
+                    Core.Log.Msg($"[dialogue] asked the cut scene for the {(second && !first ? "second" : "first")} upgrade (was {state})");
+                    return true;
+                }
+                catch (Exception ex)
+                {
+                    Core.Log.Warning($"[dialogue] the cut scene refused: {ex.Message}");
+                }
             }
-            catch (Exception ex)
+            else
             {
-                Core.Log.Warning($"[dialogue] the cut scene refused: {ex.Message}");
+                // Nothing on offer, so this really is just a conversation ending.
+                try
+                {
+                    scene.AdvanceCrazyDaveDialog(false);
+                    Core.Log.Msg($"[dialogue] no upgrade on offer; let the cut scene close it (was {state})");
+                    return true;
+                }
+                catch (Exception ex)
+                {
+                    Core.Log.Warning($"[dialogue] the cut scene refused: {ex.Message}");
+                }
             }
         }
 
@@ -423,6 +449,17 @@ public static class Lawn
         catch (Exception ex)
         {
             Core.Log.Warning($"[dialogue] could not end the conversation: {ex.Message}");
+            return false;
+        }
+    }
+
+    /// <summary>Asks the game a yes-or-no question, answering no when it cannot be asked.</summary>
+    private static bool SafeCall(Func<bool> call, string what)
+    {
+        try { return call(); }
+        catch (Exception ex)
+        {
+            Core.Log.Warning($"[dialogue] {what} unavailable: {ex.Message}");
             return false;
         }
     }
