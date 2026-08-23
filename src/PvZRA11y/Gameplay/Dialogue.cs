@@ -39,6 +39,79 @@ public static class Dialogue
     /// <summary>Called after the conversation has been moved on.</summary>
     public static void NoteAdvanced() => _countdown = FramesBeforeReading;
 
+    private static int _verifyIn = -1;
+    private static string _beforeText;
+    private static string _beforePanels;
+
+    /// <summary>How long to give the game to react to a click before deciding it did not.</summary>
+    private const int VerifyFrames = 8;
+
+    /// <summary>
+    /// Moves the conversation on, preferring the route the game itself uses.
+    ///
+    /// A click goes to the cut scene, which both advances the words and decides what happens
+    /// at the end — including putting up the offer of an extra seed slot. Advancing the text
+    /// directly is a shortcut that gets the words and loses the ending.
+    ///
+    /// Because that is inference rather than something anyone could read, the click is
+    /// checked: if nothing on screen has changed a few frames later, the old route is used
+    /// after all and the log says so. A conversation that cannot be advanced at all is a far
+    /// worse outcome than a redundant call.
+    /// </summary>
+    public static bool Advance()
+    {
+        _beforeText = CurrentText();
+        _beforePanels = SafePanels();
+
+        if (Lawn.ClickBubble())
+        {
+            _verifyIn = VerifyFrames;
+            NoteAdvanced();
+            return true;
+        }
+
+        return Fallback("the cut scene is not there");
+    }
+
+    private static bool Fallback(string why)
+    {
+        bool moved = Lawn.AdvanceDialogue(out _);
+        Core.Log.Msg($"[dialogue] used the text route ({why}); it {(moved ? "worked" : "did nothing")}");
+        if (moved) NoteAdvanced();
+        return moved;
+    }
+
+    private static void TickVerify()
+    {
+        if (_verifyIn < 0) return;
+        if (--_verifyIn > 0) return;
+        _verifyIn = -1;
+
+        string text = CurrentText();
+        string panels = SafePanels();
+
+        if (text != _beforeText || panels != _beforePanels)
+        {
+            Core.Log.Msg($"[dialogue] the click took: panels=[{panels}]");
+            return;
+        }
+
+        Core.Log.Msg("[dialogue] the click changed nothing");
+        Fallback("the click changed nothing");
+    }
+
+    private static string CurrentText()
+    {
+        try { return PanelScope.BodyTextOf(PanelScope.FrontPanelId, ignoreSuppression: true) ?? ""; }
+        catch { return ""; }
+    }
+
+    private static string SafePanels()
+    {
+        try { return PanelScope.ShownPanelIds(); }
+        catch { return ""; }
+    }
+
     private static string _lastTrace;
 
     /// <summary>
@@ -76,6 +149,7 @@ public static class Dialogue
     public static void Tick()
     {
         TickDialogBox();
+        TickVerify();
         if (Config.Settings.VerboseLogging.Value) TraceConversation();
 
         if (!Lawn.DialogueInFront)

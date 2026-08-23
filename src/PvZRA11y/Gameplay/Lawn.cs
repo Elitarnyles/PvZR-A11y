@@ -453,6 +453,34 @@ public static class Lawn
         }
     }
 
+    /// <summary>
+    /// Does what clicking the speech bubble does, if the game will let us.
+    ///
+    /// The mod has been advancing conversations with AdvanceCrazyDaveText, which moves the
+    /// words along and nothing else. The game's own click goes through the cut scene, and
+    /// the cut scene is what owns CanGetPacketUpgrade and the offer of a seventh seed slot.
+    /// Advancing the text ourselves gets the words right and walks past whatever the cut
+    /// scene would have done at the end — which is the only remaining explanation for a
+    /// player being told "It'll cost you $750" and then never being asked.
+    /// </summary>
+    public static bool ClickBubble()
+    {
+        CutScene scene = null;
+        try { scene = _board?.mCutScene; } catch { return false; }
+        if (scene == null) return false;
+
+        try
+        {
+            scene.AdvanceCrazyDaveDialog(false);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Core.Log.Warning($"[dialogue] the cut scene would not take a click: {ex.Message}");
+            return false;
+        }
+    }
+
     /// <summary>Asks the game a yes-or-no question, answering no when it cannot be asked.</summary>
     private static bool SafeCall(Func<bool> call, string what)
     {

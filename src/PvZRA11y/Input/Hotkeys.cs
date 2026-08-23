@@ -162,11 +162,7 @@ public static class Hotkeys
             // A speech bubble has no control on it at all, so without this Enter falls
             // through to whatever was focused on the screen before and answers "Not
             // available from here" - leaving a conversation that cannot be got out of.
-            if (Lawn.DialogueInFront && Lawn.AdvanceDialogue(out _))
-            {
-                Gameplay.Dialogue.NoteAdvanced();
-                return;
-            }
+            if (Lawn.DialogueInFront && Gameplay.Dialogue.Advance()) return;
             if (LawnInput.Plant()) return;
             Focus.ActivateCurrent();
         }
