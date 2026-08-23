@@ -435,7 +435,9 @@ public static class PanelScope
 
             if (panel == null) return null;
 
-            var texts = panel.GetComponentsInChildren<TextMeshProUGUI>(false);
+            // TMP_Text rather than TextMeshProUGUI: the latter is only the canvas flavour,
+            // and a screen that mixes in a world-space label would have it silently skipped.
+            var texts = panel.GetComponentsInChildren<TMP_Text>(false);
             if (texts == null || texts.Length == 0) return null;
 
             var parts = new List<string>();
@@ -443,7 +445,7 @@ public static class PanelScope
 
             for (int i = 0; i < texts.Length; i++)
             {
-                TextMeshProUGUI text = texts[i];
+                TMP_Text text = texts[i];
                 if (text == null) continue;
                 if (BelongsToControl(text)) continue;
 

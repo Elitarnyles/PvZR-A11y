@@ -37,6 +37,7 @@ public static class Probe
             AppendContext(sb);
             if (Gameplay.SeedChooser.IsActive) Gameplay.SeedChooser.Dump(sb);
             AppendPanels(sb);
+            AppendPanelText(sb);
             AppendReachable(sb);
             AppendFiltered(sb);
         }
@@ -88,6 +89,87 @@ public static class Probe
             sb.AppendLine($"  could not enumerate panels: {ex.Message}");
         }
         sb.AppendLine();
+    }
+
+    /// <summary>
+    /// Every piece of text on the front panel, including the ones switched off.
+    ///
+    /// Reading a screen only reports the text that is live and not part of a control, which
+    /// is right for speech and useless for diagnosis: when something on screen is not being
+    /// read, the question is whether the mod skipped it, whether it was inactive at the
+    /// time, or whether there was never any text there at all and the thing is a picture.
+    /// Those three want completely different fixes and sound identical from the outside.
+    /// </summary>
+    private static void AppendPanelText(StringBuilder sb)
+    {
+        string id = PanelScope.FrontPanelId;
+        sb.AppendLine($"--- text on front panel \"{Or(id, "<none>")}\" ---");
+
+        if (string.IsNullOrEmpty(id))
+        {
+            sb.AppendLine("  (no panel in front)");
+            sb.AppendLine();
+            return;
+        }
+
+        try
+        {
+            PanelView panel = null;
+            var all = UnityEngine.Object.FindObjectsOfType<PanelView>();
+            for (int i = 0; all != null && i < all.Length; i++)
+                if (PanelScope.SafeId(all[i]) == id) { panel = all[i]; break; }
+
+            if (panel == null)
+            {
+                sb.AppendLine("  (panel object not found)");
+                sb.AppendLine();
+                return;
+            }
+
+            // true: include the inactive ones. That is the whole point of this section.
+            var texts = panel.GetComponentsInChildren<Il2CppTMPro.TMP_Text>(true);
+            sb.AppendLine($"  TMP_Text components: {(texts == null ? 0 : texts.Length)}");
+
+            for (int i = 0; texts != null && i < texts.Length; i++)
+            {
+                Il2CppTMPro.TMP_Text t = texts[i];
+                if (t == null) continue;
+
+                string live;
+                try { live = t.gameObject.activeInHierarchy ? "on " : "OFF"; }
+                catch { live = " ? "; }
+
+                string body;
+                try { body = t.text; } catch (Exception ex) { body = "<threw: " + ex.Message + ">"; }
+                body = string.IsNullOrWhiteSpace(body) ? "<empty>" : UiText.Collapse(body);
+                if (body.Length > 300) body = body.Substring(0, 300) + " ...";
+
+                sb.AppendLine($"  [{live}] {UiText.PathOf(SafeGameObject(t))}");
+                sb.AppendLine($"        \"{body}\"");
+            }
+
+            // Pictures matter too: a note drawn as a handwritten image has no text anywhere,
+            // and that is a different problem with a different answer.
+            var images = panel.GetComponentsInChildren<UnityEngine.UI.Image>(true);
+            int on = 0, off = 0;
+            for (int i = 0; images != null && i < images.Length; i++)
+            {
+                try { if (images[i].gameObject.activeInHierarchy) on++; else off++; } catch { }
+            }
+            sb.AppendLine($"  Images: {on} active, {off} inactive");
+        }
+        catch (Exception ex)
+        {
+            sb.AppendLine($"  could not read the panel text: {ex.Message}");
+        }
+
+        sb.AppendLine();
+    }
+
+    private static GameObject SafeGameObject(UnityEngine.Component c)
+    {
+        try { return c?.gameObject; }
+        catch { return null; }
     }
 
     private static void AppendReachable(StringBuilder sb)
