@@ -39,9 +39,44 @@ public static class Dialogue
     /// <summary>Called after the conversation has been moved on.</summary>
     public static void NoteAdvanced() => _countdown = FramesBeforeReading;
 
+    private static string _lastTrace;
+
+    /// <summary>
+    /// Writes down what is on screen while a character is talking, whenever it changes.
+    ///
+    /// Crazy Dave's offer of an extra seed slot arrives as a plain speech bubble and then
+    /// goes somewhere this mod has not found: no dialog box opens, no button appears on the
+    /// seed chooser, and the game ships a "buy this item" popup that never showed up in any
+    /// recorded session. Rather than guess a fourth time, every change during a conversation
+    /// is written down, so one more encounter answers it instead of another round of
+    /// theories.
+    /// </summary>
+    private static void TraceConversation()
+    {
+        if (!Lawn.DialogueInFront) { _lastTrace = null; return; }
+
+        string trace;
+        try
+        {
+            string state = Lawn.DaveState();
+            string panels = PanelScope.ShownPanelIds();
+            int controls = Focus.CollectVisible().Count;
+            trace = $"dave={state} controls={controls} panels=[{panels}]";
+        }
+        catch (Exception ex)
+        {
+            trace = "trace failed: " + ex.Message;
+        }
+
+        if (trace == _lastTrace) return;
+        _lastTrace = trace;
+        Core.Log.Msg("[dialogue] " + trace);
+    }
+
     public static void Tick()
     {
         TickDialogBox();
+        if (Config.Settings.VerboseLogging.Value) TraceConversation();
 
         if (!Lawn.DialogueInFront)
         {

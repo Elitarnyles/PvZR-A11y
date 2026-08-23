@@ -422,6 +422,25 @@ public static class PanelScope
         "messageWidget",
     };
 
+    /// <summary>Every panel currently on display, comma separated. For the log.</summary>
+    public static string ShownPanelIds()
+    {
+        var ids = new List<string>();
+        try
+        {
+            foreach (PanelView p in ShownPanels())
+            {
+                string id = SafeId(p);
+                if (!string.IsNullOrEmpty(id) && !ids.Contains(id)) ids.Add(id);
+            }
+        }
+        catch (Exception ex)
+        {
+            return "unreadable: " + ex.Message;
+        }
+        return string.Join(", ", ids);
+    }
+
     public static string BodyTextOf(string panelId, bool ignoreSuppression = false)
     {
         if (string.IsNullOrEmpty(panelId)) return null;

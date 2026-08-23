@@ -371,6 +371,13 @@ public static class Lawn
         catch { return "unknown"; }
     }
 
+    /// <summary>What Crazy Dave is doing, for the log. Never throws.</summary>
+    public static string DaveState()
+    {
+        try { return _app == null ? "no activity" : _app.CrazyDaveState.ToString(); }
+        catch { return "unreadable"; }
+    }
+
     /// <summary>True while a character is talking and the conversation is what Enter means.</summary>
     public static bool DialogueInFront => DialoguePanels.Contains(PanelScope.FrontPanelId ?? "");
 
