@@ -59,6 +59,20 @@ public static class Strings
         ["msg.unlabelled"] = "unlabelled control",
         ["msg.not_available"] = "Not available from here.",
         ["msg.and_more"] = "and {0} more",
+        ["msg.repeated"] = "{0}, {1} times",
+
+        // The almanac. The encyclopaedia text itself belongs to the game and is read from
+        // its own string table at runtime; these are only the words around it.
+        ["almanac.grid"] = "entry list",
+        ["almanac.locked"] = "Not encountered yet",
+        ["almanac.sun"] = "{0} sun",
+        ["almanac.hitpoints"] = "{0} hit points",
+        ["almanac.no_entry"] = "No almanac entry is open.",
+        ["almanac.unreadable"] = "The almanac entry could not be read.",
+
+        // The game labels this button "the\\nsuburban\\nalmanac" with the escapes left in
+        // as literal characters, which is unreadable however it is collapsed.
+        ["ui.AlmanacButton"] = "Suburban Almanac",
         ["sonar.armour_dinted"] = "{0}, dinted",
         ["sonar.armour_damaged"] = "{0}, damaged",
         ["sonar.armour_gone"] = "{0}, exposed",
@@ -224,7 +238,10 @@ public static class Strings
         ["screen.Options"] = "Options",
         ["screen.Pause"] = "Paused",
         ["screen.Confirm"] = "Confirm",
-        ["screen.Almanac"] = "Almanac",
+        ["screen.almanac"] = "Almanac index",
+        ["screen.almanacPlants"] = "Almanac, plants",
+        ["screen.almanacZombies"] = "Almanac, zombies",
+        ["screen.almanacArchive"] = "Almanac archive",
         ["screen.Store"] = "Store",
         ["screen.Achievements"] = "Achievements",
 

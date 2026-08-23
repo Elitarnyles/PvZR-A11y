@@ -40,6 +40,7 @@ public static class Settings
     public static MelonPreferences_Entry<bool> AutoCollectSun;
     public static MelonPreferences_Entry<bool> AutoCollectItems;
     public static MelonPreferences_Entry<bool> SayCoinPickups;
+    public static MelonPreferences_Entry<bool> SayAlmanacHitPoints;
 
     // --- Navigation --------------------------------------------------------
     public static MelonPreferences_Entry<bool> AutoFocusFirstControl;
@@ -107,6 +108,9 @@ public static class Settings
             description: "Gather sun for you as it falls, using the game's own vacuum. Removes the need to find and click each one.");
         AutoCollectItems = cat.CreateEntry("AutoCollectItems", true,
             description: "Also gather coins and the prizes a level drops when won - new seed packets, trophies, presents. These are easy to miss entirely.");
+        SayAlmanacHitPoints = cat.CreateEntry("SayAlmanacHitPoints", false,
+            description: "Read the hit-point figure hidden inside a zombie's toughness line in the almanac, as in \"Toughness: high, 1370 hit points\". Off by default, matching the original PvZ accessibility mod, which drops it.");
+
         SayCoinPickups = cat.CreateEntry("SayCoinPickups", false,
             description: "Announce coins as well as prizes. Off by default: coins are frequent and prizes are what you actually need to hear about.");
 

@@ -72,6 +72,12 @@ public static class UiText
         if (Strings.TryUiLabel(objectName, out string mapped))
             return mapped;
 
+        // Almanac tiles carry no text at all — two images and nothing else — and every one
+        // of them is a clone sharing a single GameObject name, so the override above has
+        // nothing to key on either. What they are lives only in the data model.
+        string almanac = Almanac.LabelFor(selectable);
+        if (!string.IsNullOrEmpty(almanac)) return almanac;
+
         string text = ReadAnyText(selectable);
         if (!string.IsNullOrWhiteSpace(text))
             return Collapse(text);

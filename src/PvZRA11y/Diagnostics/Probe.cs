@@ -36,6 +36,7 @@ public static class Probe
         {
             AppendContext(sb);
             if (Gameplay.SeedChooser.IsActive) Gameplay.SeedChooser.Dump(sb);
+            if (UI.Almanac.IsActive) UI.Almanac.Dump(sb);
             AppendPanels(sb);
             AppendPanelText(sb);
             AppendReachable(sb);

@@ -420,6 +420,14 @@ public static class PanelScope
         // the right timing. Reading the panel as well said everything twice: once as
         // "Message Widget. Your house" and once as "Your house".
         "messageWidget",
+
+        // The almanac pages carry a whole encyclopaedia entry as loose text. Read on every
+        // screen change it would arrive unasked, at whatever length the selected entry
+        // happens to be. It is on a question key instead. The index panel is deliberately
+        // not here: its loose text is one short heading.
+        "almanacPlants",
+        "almanacZombies",
+        "almanacArchive",
     };
 
     /// <summary>Every panel currently on display, comma separated. For the log.</summary>

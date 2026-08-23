@@ -61,6 +61,7 @@ public class Core : MelonMod
         Log.Msg("Keys, lawn: arrows move, Enter plant, Backspace shovel, F5 freeze, F6 read seed bank, " +
                 "minus and equals cycle seeds, F1 scan row (twice: rows with zombies), F2 square detail, " +
                 "F3 sun, F4 progress.");
+        Log.Msg("Keys, almanac: arrows move between entries, Enter opens one, F4 reads it in full.");
         Log.Msg("Keys, anywhere: LeftCtrl silence, Ctrl+Alt+A toggle speech, F10 dump screen to log, F11 self-test.");
     }
 
@@ -86,6 +87,7 @@ public class Core : MelonMod
         ("hotkeys",      Hotkeys.Update),
         ("screen",       ScreenTracker.Poll),
         ("notes",        Gameplay.Notes.Tick),
+        ("almanac",      UI.Almanac.Tick),
         ("dialogue",     Gameplay.Dialogue.Tick),
         ("focus",        Focus.Update),
         ("text entry",   TextEntry.Update),

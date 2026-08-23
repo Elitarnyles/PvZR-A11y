@@ -286,6 +286,10 @@ public static class Focus
             {
                 Core.Log.Msg($"[activate] button \"{UiText.SafeName(s)}\" on panel {reach.PanelId ?? "none"}");
                 button.onClick.Invoke();
+
+                // Opening an almanac entry fills the panel but does not move focus, so
+                // nothing would otherwise be said at the moment the screen changes.
+                Almanac.NoteActivated(s);
                 return true;
             }
 
@@ -341,19 +345,37 @@ public static class Focus
         if (!string.IsNullOrEmpty(screen)) parts.Add(Strings.T("msg.screen_is", screen));
         parts.Add(Strings.T("msg.controls_count", visible.Count));
 
-        int named = Math.Min(visible.Count, ReadScreenLimit);
-        for (int i = 0; i < named; i++)
+        // Runs of identical controls are collapsed. A grid screen such as the almanac is
+        // dozens of tiles reading the same words, and spelling each one out is minutes of
+        // speech that says one thing. The limit below counts groups, not controls, so
+        // collapsing buys real coverage rather than just shortening the sentence.
+        int spoken = 0;
+        int i = 0;
+
+        while (i < visible.Count && spoken < ReadScreenLimit)
         {
-            Selectable s = visible[i];
-            string label = UiText.GetLabel(s);
-            string state = UiText.GetState(s);
-            parts.Add(string.IsNullOrEmpty(state) ? label : $"{label} {state}");
+            string line = LineFor(visible[i]);
+
+            int run = 1;
+            while (i + run < visible.Count && LineFor(visible[i + run]) == line) run++;
+
+            parts.Add(run == 1 ? line : Strings.T("msg.repeated", line, run));
+            i += run;
+            spoken++;
         }
 
-        if (visible.Count > named)
-            parts.Add(Strings.T("msg.and_more", visible.Count - named));
+        if (i < visible.Count)
+            parts.Add(Strings.T("msg.and_more", visible.Count - i));
 
         Speech.SayVerbatim(string.Join(". ", parts), "read screen");
+    }
+
+    /// <summary>What one control contributes to a whole-screen readout.</summary>
+    private static string LineFor(Selectable s)
+    {
+        string label = UiText.GetLabel(s);
+        string state = UiText.GetState(s);
+        return string.IsNullOrEmpty(state) ? label : $"{label} {state}";
     }
 
     /// <summary>

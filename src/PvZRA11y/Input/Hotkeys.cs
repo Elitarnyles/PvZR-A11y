@@ -187,6 +187,15 @@ public static class Hotkeys
             if (Pressed(kb, _info4)) { SeedChooser.AnnounceCurrent(); return true; }
         }
 
+        // Before the lawn, and for the same reason as the plant chooser: the almanac can
+        // sit on top of a live board, so "am I on the lawn" answers yes while the player is
+        // plainly reading an encyclopaedia.
+        if (Almanac.IsOnGrid && Pressed(kb, _info4))
+        {
+            Almanac.AnnounceEntry();
+            return true;
+        }
+
         bool onLawn = Lawn.IsOnBoard;
 
         if (Pressed(kb, _info1))
