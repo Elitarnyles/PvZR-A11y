@@ -116,7 +116,7 @@ so if you know that one you already know this.
 - **Arrow keys** — move the cursor one square. Walking into a wall says which wall.
 - **Enter** — plant what is in your hand.
 - **Backspace** — dig up the plant under the cursor. Whatever you were holding goes back into
-  your hand afterwards.
+  your hand afterwards. In Whack a Zombie it swings the mallet instead, and says what you hit.
 - **F5** — freeze and unfreeze the game. You can still look around while frozen.
 - **F6** — read the whole seed bank, including the slots you cannot afford yet, without changing
   what is in your hand.

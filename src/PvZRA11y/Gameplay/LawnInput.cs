@@ -318,6 +318,11 @@ public static class LawnInput
     {
         if (!Lawn.HasInput) return false;
 
+        // On the mallet mini-game the same key swings instead. There is nothing planted to
+        // dig up there, and the original PvZ accessibility mod puts the mallet here too, so
+        // anyone arriving from it already has the habit.
+        if (Lawn.IsWhackAZombieLevel) return Whack();
+
         // Remembered before the dig, because digging takes whatever was in hand out of it.
         int heldBefore = Seeds.SelectedIndex();
 
@@ -340,6 +345,32 @@ public static class LawnInput
         Speech.Say(string.IsNullOrEmpty(removed)
             ? Strings.T("lawn.dug_up_something")
             : Strings.T("lawn.dug_up", removed), interrupt: true, context: "shovel");
+        return true;
+    }
+
+    /// <summary>
+    /// One swing of the mallet.
+    ///
+    /// Says what was there rather than whether it died: a zombie takes several hits, and
+    /// reporting the hit itself is what tells you the swing landed on the square you meant.
+    /// </summary>
+    private static bool Whack()
+    {
+        bool swung = Lawn.HammerAtCursor(out string target);
+
+        // Always, hit or miss: the tool is picked up by the attempt, and a tool left in hand
+        // makes the game refuse every later plant selection.
+        Lawn.PutToolDown();
+
+        if (!swung)
+        {
+            Speech.Say(Strings.T("lawn.cannot_swing"), context: "mallet");
+            return true;
+        }
+
+        Speech.Say(string.IsNullOrEmpty(target)
+            ? Strings.T("lawn.swing_missed")
+            : Strings.T("lawn.swing_hit", target), interrupt: true, context: "mallet", allowRepeat: true);
         return true;
     }
 

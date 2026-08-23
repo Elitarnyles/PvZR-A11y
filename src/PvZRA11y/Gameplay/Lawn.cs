@@ -1026,6 +1026,60 @@ public static class Lawn
         Core.Log.Msg($"[lawn] tool put down: {before} -> {CursorKind()}");
     }
 
+    /// <summary>
+    /// True on the mini-game where zombies pop out of the ground and are hit with a mallet.
+    /// There is nothing to plant and nothing to dig up there; the same key swings instead.
+    /// </summary>
+    public static bool IsWhackAZombieLevel
+    {
+        get
+        {
+            try { return _app != null && _app.IsWhackAZombieLevel(); }
+            catch { return false; }
+        }
+    }
+
+    /// <summary>
+    /// Swings the mallet at the square under the cursor, and says what was standing there.
+    ///
+    /// The same route as the shovel, because the game has no separate call for it: hand the
+    /// board a click that already carries the tool. Which means the same trap applies — the
+    /// tool stays in hand afterwards unless it is put down, and while a tool is held the
+    /// game refuses to select a plant.
+    ///
+    /// What was hit is read before the swing, not after: a zombie that goes down is gone by
+    /// the time the mallet lands, and "nothing there" is the one answer that would be wrong.
+    /// </summary>
+    public static bool HammerAtCursor(out string target)
+    {
+        target = null;
+        if (_board == null) return false;
+        if (!TryGetPosition(out int x, out int y)) return false;
+
+        try { target = Sonar.DescribeZombiesAt(y, x); }
+        catch { /* the name is a courtesy; the swing matters more */ }
+
+        if (!TryPixelForSquare(x, y, out int px, out int py))
+        {
+            Core.Log.Warning($"[lawn] no pixel position maps back to square {x},{y}; not swinging");
+            return false;
+        }
+
+        try
+        {
+            Core.Log.Msg($"[lawn] mallet at pixel {px},{py} for square {x},{y}" +
+                         $" (target: {target ?? "nothing"})");
+            _board.MouseDownWithTool(px, py, 1, CursorType.Hammer, Player);
+            _board.MouseUp(px, py, 1, Player);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Core.Log.Warning($"Could not swing at {x},{y}: {ex.Message}");
+            return false;
+        }
+    }
+
     public static bool ShovelAtCursor(out string removed)
     {
         removed = null;

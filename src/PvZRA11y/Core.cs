@@ -62,6 +62,7 @@ public class Core : MelonMod
                 "minus and equals cycle seeds, F1 scan row (twice: rows with zombies), F2 square detail, " +
                 "F3 sun, F4 progress.");
         Log.Msg("Keys, almanac: arrows move between entries, Enter opens one, F4 reads it in full.");
+        Log.Msg("Keys, Whack a Zombie: arrows move, Backspace swings the mallet.");
         Log.Msg("Keys, anywhere: LeftCtrl silence, Ctrl+Alt+A toggle speech, F10 dump screen to log, F11 self-test.");
     }
 
