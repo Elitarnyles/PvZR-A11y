@@ -358,6 +358,19 @@ public static class Lawn
         "speechBubble",
     };
 
+    /// <summary>When the end of a message was last announced, so a second press can close it.</summary>
+    private static long _endOfMessageAt = long.MinValue;
+
+    /// <summary>How long that second press stays available.</summary>
+    private const long EndOfMessageWindowMs = 4000;
+
+    /// <summary>The kind of dialog on screen, for the log, without risking a throw.</summary>
+    private static string SafeDialogType(Dialog dialog)
+    {
+        try { return dialog.mDialogType.ToString(); }
+        catch { return "unknown"; }
+    }
+
     /// <summary>True while a character is talking and the conversation is what Enter means.</summary>
     public static bool DialogueInFront => DialoguePanels.Contains(PanelScope.FrontPanelId ?? "");
 
@@ -377,25 +390,50 @@ public static class Lawn
             moreToCome = _app.AdvanceCrazyDaveText();
             if (moreToCome)
             {
+                _endOfMessageAt = long.MinValue;
                 Core.Log.Msg("[dialogue] advanced to the next line");
                 return true;
             }
 
             // On the last line the game's own advance does nothing and reports that nothing
-            // followed, so pressing on just swallowed the key. Measured: six presses, six
-            // "more to come: False", and a conversation with no way out of it.
+            // followed. What happens next is not ours to decide, and guessing cost a real
+            // purchase: Crazy Dave's offer of a seventh seed slot arrives as an ordinary
+            // speech bubble, and sending him away at the end of it threw the offer out
+            // before its buttons ever appeared. The log recorded it as
+            // "last line; sent him on his way (was Idling)" — indistinguishable from any
+            // other conversation ending.
             CrazyDaveState state = _app.CrazyDaveState;
+            Dialog dialog = null;
+            try { dialog = Dialog.CurrentDialog; } catch { /* older builds may not have it */ }
 
-            // Except while he is handing something over. Ending the conversation there might
-            // take the gift with it, and losing a plant is worse than a stuck bubble.
+            if (dialog != null)
+            {
+                Core.Log.Msg($"[dialogue] last line, and a dialog is waiting ({SafeDialogType(dialog)}); left alone");
+                return false;
+            }
+
             if (state == CrazyDaveState.HandingTalking || state == CrazyDaveState.HandingIdling)
             {
                 Core.Log.Msg($"[dialogue] last line, but Dave is handing something over ({state}); left alone");
                 return false;
             }
 
+            // Two presses to end a conversation, not one. The first says so, which is also
+            // how you learn there is nothing more; the second closes it. Anything the game
+            // wants to put on screen — a question, a price, a pair of buttons — has the gap
+            // between them to appear in, and if it does the first branch above catches it.
+            long now = Environment.TickCount64;
+            if (now - _endOfMessageAt > EndOfMessageWindowMs)
+            {
+                _endOfMessageAt = now;
+                Core.Log.Msg($"[dialogue] last line (state {state}); waiting for a second press before closing");
+                Speech.Say(Strings.T("dialogue.end"), interrupt: false, context: "dialogue");
+                return true;
+            }
+
+            _endOfMessageAt = long.MinValue;
             _app.CrazyDaveLeave();
-            Core.Log.Msg($"[dialogue] last line; sent him on his way (was {state})");
+            Core.Log.Msg($"[dialogue] closed on a second press (was {state})");
             return true;
         }
         catch (Exception ex)

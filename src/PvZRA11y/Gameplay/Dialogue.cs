@@ -41,6 +41,8 @@ public static class Dialogue
 
     public static void Tick()
     {
+        TickDialogBox();
+
         if (!Lawn.DialogueInFront)
         {
             // Cleared on leaving, so the same opening line is read again next conversation.
@@ -62,6 +64,55 @@ public static class Dialogue
         _lastSpoken = text;
 
         Speech.Say(text, interrupt: true, context: "dialogue");
+    }
+
+    private static string _lastDialogBox;
+
+    /// <summary>
+    /// Announces a question the game puts up — a price, a confirmation, a pair of buttons.
+    ///
+    /// These are a different thing from a speech bubble: the bubble is one character
+    /// talking, this is the game waiting for an answer. It has a header, body text and
+    /// buttons, and none of it was being read.
+    /// </summary>
+    private static void TickDialogBox()
+    {
+        Il2CppReloaded.Gameplay.Dialog dialog;
+        try { dialog = Il2CppReloaded.Gameplay.Dialog.CurrentDialog; }
+        catch { return; }
+
+        if (dialog == null)
+        {
+            _lastDialogBox = null;
+            return;
+        }
+
+        string text;
+        try
+        {
+            var parts = new List<string>(3);
+            void Add(string s) { if (!string.IsNullOrWhiteSpace(s)) parts.Add(UiText.Collapse(s)); }
+
+            Add(dialog.mDialogHeader);
+            Add(dialog.mDialogLines);
+            Add(dialog.mDialogFooter);
+
+            text = string.Join(". ", parts);
+        }
+        catch (Exception ex)
+        {
+            Core.Log.Warning($"[dialogue] could not read the dialog box: {ex.Message}");
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(text) || text == _lastDialogBox) return;
+        _lastDialogBox = text;
+
+        int buttons = 0;
+        try { buttons = dialog.mNumButtons; } catch { }
+
+        Core.Log.Msg($"[dialogue] dialog box, {buttons} button(s): {text}");
+        Speech.Say(text, interrupt: true, context: "dialog box");
     }
 
     /// <summary>Remembers what the screen announcement already said, so it is not repeated.</summary>

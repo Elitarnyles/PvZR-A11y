@@ -96,6 +96,7 @@ public static class Strings
         ["lawn.cursor_lost"] = "Lost the lawn cursor.",
         ["lawn.unreadable"] = "could not be read",
         ["note.unreadable"] = "The note could not be read.",
+        ["dialogue.end"] = "End of message. Press again to close it.",
         ["sonar.unreadable"] = "The lawn could not be read.",
         ["speed.normal"] = "Normal speed.",
         ["speed.faster"] = "Speed {0} times.",
