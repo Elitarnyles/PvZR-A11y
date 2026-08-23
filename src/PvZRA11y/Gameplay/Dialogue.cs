@@ -220,8 +220,10 @@ public static class Dialogue
         int buttons = 0;
         try { buttons = dialog.mNumButtons; } catch { }
 
+        // Logged, not spoken. The screen announcement already reads this panel and does it
+        // better, because it adds which button you are on: "Dialog. $750. Upgrade to 7 seed
+        // slots?. Yes, button, 1 of 2". Saying it here as well said the question twice.
         Core.Log.Msg($"[dialogue] dialog box, {buttons} button(s): {text}");
-        Speech.Say(text, interrupt: true, context: "dialog box");
     }
 
     /// <summary>Remembers what the screen announcement already said, so it is not repeated.</summary>
