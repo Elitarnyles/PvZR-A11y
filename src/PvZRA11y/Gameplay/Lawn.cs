@@ -375,7 +375,27 @@ public static class Lawn
         try
         {
             moreToCome = _app.AdvanceCrazyDaveText();
-            Core.Log.Msg($"[dialogue] advanced; more to come: {moreToCome}");
+            if (moreToCome)
+            {
+                Core.Log.Msg("[dialogue] advanced to the next line");
+                return true;
+            }
+
+            // On the last line the game's own advance does nothing and reports that nothing
+            // followed, so pressing on just swallowed the key. Measured: six presses, six
+            // "more to come: False", and a conversation with no way out of it.
+            CrazyDaveState state = _app.CrazyDaveState;
+
+            // Except while he is handing something over. Ending the conversation there might
+            // take the gift with it, and losing a plant is worse than a stuck bubble.
+            if (state == CrazyDaveState.HandingTalking || state == CrazyDaveState.HandingIdling)
+            {
+                Core.Log.Msg($"[dialogue] last line, but Dave is handing something over ({state}); left alone");
+                return false;
+            }
+
+            _app.CrazyDaveLeave();
+            Core.Log.Msg($"[dialogue] last line; sent him on his way (was {state})");
             return true;
         }
         catch (Exception ex)
