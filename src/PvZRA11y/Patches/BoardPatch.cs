@@ -23,6 +23,7 @@ internal static class BoardPatch
     {
         Lawn.NoteBoard(__instance);
         ClearArrivals();
+        Notes.Reset();
         LawnInput.Reset();
         Sonar.Reset();
         SeedChooser.Reset();
