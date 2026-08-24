@@ -55,10 +55,38 @@ public static class Notes
     public static void Reset() => _saidThisScreen = false;
 
     /// <summary>
-    /// Speaks the note once, while the award screen is in front.
+    /// The note's words, for whoever is building the screen announcement, or null.
     ///
-    /// Polled rather than driven by an event, so it cannot run before the screen has finished
-    /// announcing itself and land in the middle of its own heading.
+    /// Handing it over rather than speaking it separately, because two utterances in a row
+    /// do not survive each other: the note went out first and the screen announcement that
+    /// followed carries an interrupt, which cut the letter off in the middle of a sentence.
+    /// Reported by the player as "it starts reading and then something talks over it".
+    ///
+    /// Taking it marks it as said, so the watcher below does not read it a second time.
+    /// </summary>
+    public static string TakeTextForScreen()
+    {
+        if (_saidThisScreen) return null;
+        if (PanelScope.FrontPanelId != PanelId) return null;
+
+        int number = ShowingNote();
+        if (number < 0) return null;
+
+        string text = TextFor(number);
+        if (string.IsNullOrWhiteSpace(text)) return null;
+
+        _saidThisScreen = true;
+        Core.Log.Msg($"[note] folded note {number} into the screen announcement");
+        return text;
+    }
+
+    /// <summary>
+    /// Speaks the note on its own, when the screen announcement did not take it.
+    ///
+    /// The fallback rather than the usual route: the note is normally folded into the
+    /// screen's own sentence. This covers the case where the picture had not been switched
+    /// on yet at the moment that sentence was built — the binders run a frame or two after
+    /// the panel appears, the same lag the speech bubbles taught.
     /// </summary>
     public static void Tick()
     {

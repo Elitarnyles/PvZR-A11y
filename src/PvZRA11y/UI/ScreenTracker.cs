@@ -91,6 +91,13 @@ public static class ScreenTracker
         string name = NameOf(id);
         string body = PanelScope.BodyTextOf(id);
 
+        // A zombie's note belongs to the sentence the screen is already saying. Spoken
+        // separately it was cut off: the announcement that follows a screen change carries
+        // an interrupt, and the letter never got past its first line.
+        string note = Gameplay.Notes.TakeTextForScreen();
+        if (!string.IsNullOrWhiteSpace(note))
+            body = string.IsNullOrEmpty(body) ? note : body + " " + note;
+
         if (string.IsNullOrEmpty(body)) return name;
 
         Core.Log.Msg($"[screen] \"{id}\" says: {body}");
