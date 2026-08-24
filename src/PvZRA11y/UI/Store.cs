@@ -135,7 +135,53 @@ public static class Store
             }
         }
 
+        // 3. The number on screen. Last because it is the least direct, first in reliability:
+        // it is by definition what a sighted player is looking at, and it does not care
+        // which activity happens to be alive.
+        int? shown = FromCoinLabel();
+        if (shown != null) return shown;
+
         Core.Log.Warning("[store] nothing would say how many coins the player has");
+        return null;
+    }
+
+    /// <summary>The game's own coin counter, read off the screen.</summary>
+    private static int? FromCoinLabel()
+    {
+        try
+        {
+            var texts = UnityEngine.Object.FindObjectsOfType<Il2CppTMPro.TMP_Text>();
+            if (texts == null) return null;
+
+            for (int i = 0; i < texts.Length; i++)
+            {
+                Il2CppTMPro.TMP_Text text = texts[i];
+                if (text == null) continue;
+
+                string name;
+                try { name = text.gameObject.name; } catch { continue; }
+                if (!name.Contains("CoinBank", StringComparison.OrdinalIgnoreCase)) continue;
+
+                string raw;
+                try { raw = text.text; } catch { continue; }
+                if (string.IsNullOrWhiteSpace(raw)) continue;
+
+                string digits = Digits(raw);
+                if (digits.Length == 0) continue;
+
+                if (int.TryParse(digits, NumberStyles.Any, CultureInfo.InvariantCulture, out int coins))
+                {
+                    if (Settings.VerboseLogging.Value)
+                        Core.Log.Msg($"[store] coins from the label \"{name}\": \"{raw}\" -> {coins}");
+                    return coins;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Core.Log.Warning($"[store] could not read the coin counter: {ex.Message}");
+        }
+
         return null;
     }
 
