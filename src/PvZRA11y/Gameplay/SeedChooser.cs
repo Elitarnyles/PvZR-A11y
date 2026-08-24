@@ -801,9 +801,21 @@ public static class SeedChooser
             sb.AppendLine($"  screen ready    : {_screen.mIsReady}");
             sb.AppendLine($"  remaining slots : {RemainingSlots()}");
 
+            var offered = Offered();
+            int columns = Columns();
+            sb.AppendLine($"  grid            : {columns} columns, {Cards().Count} cards on screen," +
+                          $" {offered.Count} plants owned");
+            sb.AppendLine($"  cursor          : slot {_slot}, list index {_cursor}");
+
             var seeds = Seeds();
             sb.AppendLine($"  plants listed   : {(seeds == null ? 0 : seeds.Count)}");
             if (seeds == null) return;
+
+            // The four flags side by side. They overlap in ways that mislead apart: taking a
+            // plant makes the game report it as one that cannot be picked, which once had
+            // the mod announcing the player's own choice as unavailable.
+            ChosenSeed under = CurrentSeed();
+            if (under != null) sb.AppendLine($"  under cursor    : {SafeType(under)}  {FlagsOf(under)}");
 
             for (int i = 0; i < seeds.Count; i++)
             {
@@ -870,12 +882,15 @@ public static class SeedChooser
 
             string line = string.Join(": ", parts);
 
-            // Outermost first, so the thing that stops you is the first word you hear. A
-            // plant the level forbids is worth knowing before its name, not after its
-            // description.
-            if (IsPicked(seed)) line = Strings.T("chooser.picked", line);
+            // Applied inside, so it is heard after whichever of the two below applies. A
+            // poor fit is worth knowing about a plant you have already taken as well.
             if (NotSuggested(seed)) line = Strings.T("chooser.not_suggested", line);
-            if (!Allowed(seed)) line = Strings.T("chooser.not_allowed", line);
+
+            // Picked wins over not-allowed, and replaces it. Taking a plant makes the game
+            // mark it as one you cannot pick, which is true and useless: you already know
+            // why, and hearing "Not allowed" about your own choice reads as an error.
+            if (IsPicked(seed)) line = Strings.T("chooser.picked", line);
+            else if (!Allowed(seed)) line = Strings.T("chooser.not_allowed", line);
 
             return line;
         }
@@ -896,6 +911,10 @@ public static class SeedChooser
         try { return seed.mNotSuggested; }
         catch { return false; }
     }
+
+    /// <summary>The three flags side by side, for the dump. They overlap and mislead apart.</summary>
+    private static string FlagsOf(ChosenSeed seed)
+        => $"picked={IsPicked(seed)} owned={Owned(seed)} allowed={Allowed(seed)} notSuggested={NotSuggested(seed)}";
 
     private static bool IsPicked(ChosenSeed seed)
     {
