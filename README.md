@@ -15,8 +15,8 @@ not the information.
 **Status: version 0.1.0, playable and unfinished.** Menus, choosing a player, level select, the
 plant chooser, the lawn, planting, digging, the seed bank, the zombie scan, Crazy Dave's
 conversations and the things he sells during them, the zombies' notes, the Suburban Almanac,
-winning and the reward afterwards are all done and play-tested by a blind player. Still missing:
-the store, the Zen Garden, and every mini-game except Whack a Zombie.
+Crazy Dave's shop, winning and the reward afterwards are all done and play-tested by a blind
+player. Still missing: the Zen Garden, and every mini-game except Whack a Zombie.
 
 Menus came first on purpose: reading the lawn is worth nothing if you cannot reach a level to
 stand on.
@@ -144,6 +144,12 @@ so if you know that one you already know this.
 - **F3** — read the screen.
 - **F4** — what is selected, and how many slots are left.
 - **Minus** and **Equals** — move through the plants you have chosen.
+
+### In the shop
+
+- **Arrow keys** and **Tab** — move between items. **Enter** — buy the one you are on.
+- Each item is read by name, price, and whether it is sold out or not yet available.
+- **F1** — how many coins you have.
 
 ### In the almanac
 
