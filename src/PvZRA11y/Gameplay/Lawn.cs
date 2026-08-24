@@ -499,6 +499,21 @@ public static class Lawn
         catch { return "unknown"; }
     }
 
+    /// <summary>
+    /// The service that owns the player's coins, however it can be reached this moment.
+    ///
+    /// The shop is opened from the menu, where there may be no board and so no gameplay
+    /// activity, which is why this is allowed to answer null rather than assuming one path.
+    /// </summary>
+    public static Il2CppReloaded.Services.IUserService UserServiceRef()
+    {
+        try { var u = _app?.UserService; if (u != null) return u; }
+        catch { }
+
+        try { return _board?.mApp?.UserService; }
+        catch { return null; }
+    }
+
     /// <summary>What Crazy Dave is doing, for the log. Never throws.</summary>
     public static string DaveState()
     {

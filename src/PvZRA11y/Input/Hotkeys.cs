@@ -187,6 +187,15 @@ public static class Hotkeys
             if (Pressed(kb, _info4)) { SeedChooser.AnnounceCurrent(); return true; }
         }
 
+        // In the shop the first question key says what is in the purse. Everywhere else it
+        // repeats the last thing said, which matters far less than knowing whether you can
+        // afford the thing you are standing on.
+        if (Store.IsActive && Pressed(kb, _info1))
+        {
+            Store.AnnounceCoins();
+            return true;
+        }
+
         // Before the lawn, and for the same reason as the plant chooser: the almanac can
         // sit on top of a live board, so "am I on the lawn" answers yes while the player is
         // plainly reading an encyclopaedia.

@@ -78,6 +78,11 @@ public static class UiText
         string almanac = Almanac.LabelFor(selectable);
         if (!string.IsNullOrEmpty(almanac)) return almanac;
 
+        // The shop is built the same way: its tiles read out as bare prices, with no idea
+        // what they were the price of.
+        string store = Store.LabelFor(selectable);
+        if (!string.IsNullOrEmpty(store)) return store;
+
         string text = ReadAnyText(selectable);
         if (!string.IsNullOrWhiteSpace(text))
             return Collapse(text);

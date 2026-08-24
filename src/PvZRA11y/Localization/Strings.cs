@@ -70,6 +70,16 @@ public static class Strings
         ["almanac.no_entry"] = "No almanac entry is open.",
         ["almanac.unreadable"] = "The almanac entry could not be read.",
 
+        // The shop.
+        ["store.coins"] = "You have {0} coins.",
+        ["store.coins_unknown"] = "Cannot tell how many coins you have.",
+        ["store.sold_out"] = "sold out",
+        ["store.coming_soon"] = "coming soon",
+        ["store.unavailable"] = "not available yet",
+        // What separates thousands when a price or a balance is spoken. A space is what the
+        // player asked for; a comma may read better in other languages, so it lives here.
+        ["store.thousands"] = " ",
+
         // The game labels this button "the\\nsuburban\\nalmanac" with the escapes left in
         // as literal characters, which is unreadable however it is collapsed.
         ["ui.AlmanacButton"] = "Suburban Almanac",
