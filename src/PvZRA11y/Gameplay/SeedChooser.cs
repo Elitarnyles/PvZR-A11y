@@ -290,7 +290,29 @@ public static class SeedChooser
         {
             _lastRemaining = int.MinValue;
             _lastDeckSize = -1;
+
+            // Re-based per screen. The grid is rebuilt each time and the plants owned can
+            // have changed since the last level, so a position carried over would point at
+            // a different plant than it did.
+            _slot = -1;
+            _deckCursor = -1;
+            _grid = null;
+            _reportedCardCount = int.MinValue;
             return;
+        }
+
+        // Start on the first plant rather than nowhere, so the first arrow press is a step
+        // and not a jump. Silent: the screen announcing itself is enough.
+        if (_slot < 0)
+        {
+            var opening = Offered();
+            if (opening.Count > 0)
+            {
+                _slot = 0;
+                _cursor = opening[0];
+                Core.Log.Msg($"[chooser] grid is {Columns()} columns, {opening.Count} plants owned," +
+                             $" {Cards().Count} cards on screen");
+            }
         }
 
         // The deck is not sized until the game has configured it for this level: asked too
@@ -336,9 +358,10 @@ public static class SeedChooser
     /// <summary>
     /// Every plant this level offers, in the order the chooser lays them out.
     ///
-    /// Read from the screen's own list rather than from the cards on display. The chooser
-    /// recycles seven card objects for forty-odd plants, so the controls are a window onto
-    /// the list, not the list itself — walking them reaches seven plants and stops.
+    /// Read from the screen's own list rather than from the cards on display, because this
+    /// list holds every plant in the game while the cards hold only the ones this save owns.
+    /// The two are kept in step by Offered(), which filters this list down to exactly what
+    /// is drawn.
     /// </summary>
     private static Il2CppSystem.Collections.Generic.List<ChosenSeed> Seeds()
     {
@@ -347,36 +370,254 @@ public static class SeedChooser
     }
 
     /// <summary>Steps through the plants on offer and describes each one.</summary>
-    public static bool Move(int delta)
+    private static UnityEngine.UI.GridLayoutGroup _grid;
+    private static int _reportedCardCount = int.MinValue;
+
+    /// <summary>
+    /// The layout that arranges the cards.
+    ///
+    /// Found through the controls the mod can already see rather than by a path through the
+    /// hierarchy, so it survives the game moving things about.
+    /// </summary>
+    private static UnityEngine.UI.GridLayoutGroup GridLayout()
+    {
+        try { if (_grid != null) return _grid; }
+        catch { _grid = null; }
+
+        List<UnityEngine.UI.Selectable> visible;
+        try { visible = UI.Focus.CollectVisible(); }
+        catch { return null; }
+
+        for (int i = 0; i < visible.Count; i++)
+        {
+            UnityEngine.UI.Selectable s = visible[i];
+            if (s == null) continue;
+
+            try { if (UI.PanelScope.PanelIdOf(s) != PanelId) continue; }
+            catch { continue; }
+
+            UnityEngine.UI.GridLayoutGroup found = null;
+            try { found = s.GetComponent<UnityEngine.UI.GridLayoutGroup>(); } catch { }
+            if (found == null)
+                try { found = s.GetComponentInParent<UnityEngine.UI.GridLayoutGroup>(); } catch { }
+
+            if (found != null) { _grid = found; return found; }
+        }
+
+        return null;
+    }
+
+    /// <summary>How many cards to a row, asked of the live layout rather than assumed.</summary>
+    private static int Columns()
+    {
+        var grid = GridLayout();
+        if (grid == null) return FallbackColumns;
+
+        try
+        {
+            if (grid.constraint != UnityEngine.UI.GridLayoutGroup.Constraint.FixedColumnCount)
+                return FallbackColumns;
+
+            int n = grid.constraintCount;
+            return n > 0 ? n : FallbackColumns;
+        }
+        catch { return FallbackColumns; }
+    }
+
+    /// <summary>The card objects, in the order the layout arranges them.</summary>
+    private static List<UnityEngine.UI.Selectable> Cards()
+    {
+        var cards = new List<UnityEngine.UI.Selectable>();
+
+        var grid = GridLayout();
+        if (grid == null) return cards;
+
+        UnityEngine.Transform parent;
+        int count;
+        try { parent = grid.transform; count = parent.childCount; }
+        catch { return cards; }
+
+        for (int i = 0; i < count; i++)
+        {
+            UnityEngine.Transform child;
+            try { child = parent.GetChild(i); }
+            catch { continue; }
+            if (child == null) continue;
+
+            try { if (!child.gameObject.activeInHierarchy) continue; }
+            catch { continue; }
+
+            UnityEngine.UI.Selectable button = null;
+            try { button = child.GetComponentInChildren<UnityEngine.UI.Selectable>(); }
+            catch { }
+
+            cards.Add(button);
+        }
+
+        return cards;
+    }
+
+    /// <summary>
+    /// Moves the visible highlight to the card being spoken about.
+    ///
+    /// Only when the two lists agree. Pointing the highlight at the wrong plant would be
+    /// worse than leaving it still — these sessions get recorded, and a sighted viewer
+    /// would see one plant while hearing another.
+    /// </summary>
+    private static void SyncSelection(List<int> offered)
+    {
+        var cards = Cards();
+
+        if (cards.Count != offered.Count)
+        {
+            if (_reportedCardCount != cards.Count)
+            {
+                _reportedCardCount = cards.Count;
+                Core.Log.Msg($"[chooser] {cards.Count} cards on screen but {offered.Count} plants offered;" +
+                             " leaving the highlight where it is");
+            }
+            return;
+        }
+
+        if (_slot < 0 || _slot >= cards.Count) return;
+
+        try { UI.Focus.AdoptSelection(cards[_slot]); }
+        catch (Exception ex) { Core.Log.Warning($"Could not move the chooser highlight: {ex.Message}"); }
+    }
+
+    /// <summary>Where we are in the grid of cards, counting across rows.</summary>
+    private static int _slot = -1;
+
+    /// <summary>Eight is what the shipped screen lays out; only a fallback if it will not say.</summary>
+    private const int FallbackColumns = 8;
+
+    /// <summary>
+    /// The plants the screen actually lays out, as indices into its own list.
+    ///
+    /// Packed with no gaps, because that is how the cards are drawn: the grid binds the
+    /// plants this save owns, and a plant that is not owned has no card at all.
+    /// </summary>
+    private static List<int> Offered()
+    {
+        var offered = new List<int>(49);
+
+        var seeds = Seeds();
+        if (seeds == null) return offered;
+
+        for (int i = 0; i < seeds.Count; i++)
+        {
+            ChosenSeed seed;
+            try { seed = seeds[i]; }
+            catch { continue; }
+
+            if (Owned(seed)) offered.Add(i);
+        }
+
+        return offered;
+    }
+
+    /// <summary>
+    /// One cell across the grid the screen is drawing. dx and dy are -1, 0 or 1.
+    ///
+    /// The old version added eight to a position in the game's list of all forty-nine
+    /// plants and then skipped the ones not owned, which is not a row at all: with
+    /// twenty-one plants owned, one press of Down went from the bottom-left card to the
+    /// top-right one and nothing said so. Down now means one row of cards, counted over
+    /// the plants that actually have cards.
+    /// </summary>
+    public static bool Move(int dx, int dy)
     {
         if (!IsActive) return false;
 
-        var seeds = Seeds();
-        if (seeds == null || seeds.Count == 0)
+        var offered = Offered();
+        if (offered.Count == 0)
         {
             Speech.Say(Strings.T("chooser.no_plants"), context: "chooser");
             return true;
         }
 
-        // Step over anything this save has not unlocked. The list holds every plant in the
-        // game, and the ones a player cannot take are not choices — offering them means
-        // walking past plants that do nothing when picked.
-        int count = seeds.Count;
-        int from = _cursor < 0 ? (delta > 0 ? -1 : count) : _cursor;
+        int columns = Columns();
+        int rows = (offered.Count + columns - 1) / columns;
 
-        for (int step = 1; step <= count; step++)
+        if (_slot < 0 || _slot >= offered.Count)
         {
-            int index = ((from + delta * step) % count + count) % count;
-            if (!CanTake(seeds[index])) continue;
-
-            _cursor = index;
-            AnnounceCurrent();
+            _slot = 0;
+            Land(offered, columns, rows, Detail.Row);
             return true;
         }
 
-        Speech.Say(Strings.T("chooser.no_plants"), context: "chooser");
+        int row = _slot / columns;
+        int column = _slot % columns;
+
+        if (dx != 0)
+        {
+            int target = column + dx;
+
+            if (target < 0)
+            {
+                Speech.SayVerbatim(Strings.T("chooser.edge_left"), "chooser edge");
+                return true;
+            }
+
+            if (target >= columns || row * columns + target >= offered.Count)
+            {
+                Speech.SayVerbatim(Strings.T("chooser.edge_right"), "chooser edge");
+                return true;
+            }
+
+            _slot = row * columns + target;
+            Land(offered, columns, rows, Detail.Plain);
+            return true;
+        }
+
+        int wanted = row + dy;
+
+        if (wanted < 0) { Speech.SayVerbatim(Strings.T("chooser.edge_top"), "chooser edge"); return true; }
+        if (wanted >= rows) { Speech.SayVerbatim(Strings.T("chooser.edge_bottom"), "chooser edge"); return true; }
+
+        int landing = wanted * columns + column;
+
+        // The last row is usually short. Rather than refuse the step, land on its last
+        // plant and say the whole position, because the column has moved as well as the row.
+        bool shifted = landing >= offered.Count;
+        if (shifted) landing = offered.Count - 1;
+
+        _slot = landing;
+        Land(offered, columns, rows, shifted ? Detail.Position : Detail.Row);
         return true;
     }
+
+    /// <summary>How much position to say along with the plant.</summary>
+    private enum Detail { Plain, Row, Position }
+
+    private static void Land(List<int> offered, int columns, int rows, Detail detail)
+    {
+        _cursor = offered[_slot];
+        SyncSelection(offered);
+
+        ChosenSeed seed = CurrentSeed();
+        if (seed == null)
+        {
+            Speech.SayVerbatim(Strings.T("chooser.no_plants"), "chooser");
+            return;
+        }
+
+        string line = Describe(seed);
+        int row = _slot / columns;
+
+        // Said only when it changed. Repeating the column on every sideways step would put
+        // two numbers on the end of every plant for no new information.
+        if (detail == Detail.Row)
+            line += ", " + Strings.T("chooser.row", row + 1, rows);
+        else if (detail == Detail.Position)
+            line += ", " + Strings.T("chooser.at", row + 1, rows, (_slot % columns) + 1, RowWidth(offered, columns, row));
+
+        Speech.SayVerbatim(line, "chooser plant");
+    }
+
+    /// <summary>How many plants are really in a row. The last one is usually short.</summary>
+    private static int RowWidth(List<int> offered, int columns, int row)
+        => Math.Min(columns, offered.Count - row * columns);
 
     /// <summary>Describes the plant the cursor is on, without moving it.</summary>
     public static void AnnounceCurrent()
@@ -388,7 +629,23 @@ public static class SeedChooser
             return;
         }
 
-        Speech.SayVerbatim(Describe(seed), "chooser plant");
+        string line = Describe(seed);
+
+        // Asked for on purpose, so it carries the whole position and the size of the grid —
+        // the thing walking the rows does not repeat every step.
+        var offered = Offered();
+        if (offered.Count > 0 && _slot >= 0 && _slot < offered.Count)
+        {
+            int columns = Columns();
+            int rows = (offered.Count + columns - 1) / columns;
+            int row = _slot / columns;
+
+            line += ", " + Strings.T("chooser.at", row + 1, rows, (_slot % columns) + 1,
+                                     RowWidth(offered, columns, row));
+            line += ". " + Strings.T("chooser.offered", offered.Count);
+        }
+
+        Speech.SayVerbatim(line, "chooser plant");
     }
 
     /// <summary>
@@ -436,25 +693,47 @@ public static class SeedChooser
     /// Whether the player may actually take this plant, asked of the game rather than
     /// guessed from the save. A locked plant is on the list like any other.
     /// </summary>
-    private static bool CanTake(ChosenSeed seed)
+    /// <summary>
+    /// Whether this save owns the plant at all, and so whether it has a card on screen.
+    ///
+    /// This, and only this, decides membership of the grid. The two questions used to be
+    /// one, and that was wrong: a plant this level forbids still has a card, so excluding
+    /// it shortened the mod's list below the number of cards and put every row out of step
+    /// with the screen.
+    /// </summary>
+    private static bool Owned(ChosenSeed seed)
+    {
+        if (seed == null) return false;
+        try
+        {
+            // The chooser lists all forty-nine plants regardless of the save, and every one
+            // of them reports SeedNotAllowedToPick as false — that flag means something
+            // else. Whether this player actually owns the plant is the activity's question.
+            var app = _screen.mApp;
+            return app == null || app.HasSeedType(seed.mSeedType);
+        }
+        catch { return true; }
+    }
+
+    /// <summary>
+    /// Whether this level lets the plant be taken. Spoken as a qualifier, never used to
+    /// hide a plant — its card is on screen either way.
+    /// </summary>
+    private static bool Allowed(ChosenSeed seed)
     {
         if (seed == null) return false;
         try
         {
             SeedType type = seed.mSeedType;
-
-            // The chooser lists all forty-nine plants regardless of the save, and every one
-            // of them reports SeedNotAllowedToPick as false — that flag means something
-            // else. Whether this player actually owns the plant is the activity's question.
-            var app = _screen.mApp;
-            if (app != null && !app.HasSeedType(type)) return false;
-
             if (_screen.SeedNotAllowedToPick(type)) return false;
             if (_screen.SeedNotAllowedDuringTrial(type)) return false;
             return true;
         }
         catch { return true; }
     }
+
+    /// <summary>Kept for the places that only ask "could the player take this at all".</summary>
+    private static bool CanTake(ChosenSeed seed) => Owned(seed) && Allowed(seed);
 
     /// <summary>Starts the level. The game refuses if the deck is not full, so we ask first.</summary>
     public static bool Start()
@@ -590,13 +869,32 @@ public static class SeedChooser
             }
 
             string line = string.Join(": ", parts);
-            return IsPicked(seed) ? Strings.T("chooser.picked", line) : line;
+
+            // Outermost first, so the thing that stops you is the first word you hear. A
+            // plant the level forbids is worth knowing before its name, not after its
+            // description.
+            if (IsPicked(seed)) line = Strings.T("chooser.picked", line);
+            if (NotSuggested(seed)) line = Strings.T("chooser.not_suggested", line);
+            if (!Allowed(seed)) line = Strings.T("chooser.not_allowed", line);
+
+            return line;
         }
         catch (Exception ex)
         {
             Core.Log.Warning($"Could not describe a plant: {ex.Message}");
             return Strings.T("chooser.no_plants");
         }
+    }
+
+    /// <summary>
+    /// The game's own hint that a plant is a poor fit for this level — an aquatic plant on
+    /// a dry lawn, and so on. Read from the same field the diagnostic already prints, and
+    /// spoken because a sighted player sees the card dimmed.
+    /// </summary>
+    private static bool NotSuggested(ChosenSeed seed)
+    {
+        try { return seed.mNotSuggested; }
+        catch { return false; }
     }
 
     private static bool IsPicked(ChosenSeed seed)

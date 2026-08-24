@@ -11,9 +11,9 @@ namespace PvZRA11y.Patches;
 /// than through its controls, so it has to be reachable. Nothing hands it to us and there
 /// is no path to it from the board, so it is taken as it goes past.
 ///
-/// Reading the screen instead of its controls is not a preference. The chooser recycles
-/// seven card objects to display forty-odd plants, so walking the controls reaches seven of
-/// them and no amount of care with focus would find the rest.
+/// The screen is read rather than its controls because the screen's own list is the one the
+/// game reasons about: costs, cooldowns, whether a plant suits the level. The cards are the
+/// same plants drawn, and the mod keeps its position in step with them.
 /// </summary>
 [HarmonyPatch(typeof(SeedChooserScreen))]
 internal static class SeedChooserPatch

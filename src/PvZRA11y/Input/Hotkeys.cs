@@ -94,9 +94,9 @@ public static class Hotkeys
         // While a name is being typed, every key belongs to the text field.
         if (TextEntry.IsTyping && !Pressed(kb, _activate)) return;
 
-        // The plant chooser needs the arrows too. Its cards are a recycled handful showing a
-        // much longer list, so the game's own control navigation can only ever reach the few
-        // on display — the mod walks the list itself instead.
+        // The plant chooser needs the arrows too. Its cards are ordinary buttons, but the
+        // game does nothing with the arrow keys there: every recorded session shows the
+        // selection landing on one card as the screen opens and never moving again.
         if (SeedChooser.IsActive && HandleChooserMovement(kb)) return;
 
         // On the lawn the arrow keys walk the grid. In menus, and while a dialog covers the
@@ -257,12 +257,10 @@ public static class Hotkeys
     /// </summary>
     private static bool HandleChooserMovement(Keyboard kb)
     {
-        const int RowWidth = 8;
-
-        if (Pressed(kb, Key.LeftArrow)) return SeedChooser.Move(-1);
-        if (Pressed(kb, Key.RightArrow)) return SeedChooser.Move(1);
-        if (Pressed(kb, Key.UpArrow)) return SeedChooser.Move(-RowWidth);
-        if (Pressed(kb, Key.DownArrow)) return SeedChooser.Move(RowWidth);
+        if (Pressed(kb, Key.LeftArrow)) return SeedChooser.Move(-1, 0);
+        if (Pressed(kb, Key.RightArrow)) return SeedChooser.Move(1, 0);
+        if (Pressed(kb, Key.UpArrow)) return SeedChooser.Move(0, -1);
+        if (Pressed(kb, Key.DownArrow)) return SeedChooser.Move(0, 1);
 
         if (Pressed(kb, _activate)) return SeedChooser.Pick();
         if (Pressed(kb, _startLevel)) return SeedChooser.Start();

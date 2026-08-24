@@ -370,6 +370,22 @@ public static class Focus
         Speech.SayVerbatim(string.Join(". ", parts), "read screen");
     }
 
+    /// <summary>
+    /// Moves focus to a control the mod has already spoken about, without the watcher
+    /// announcing it a second time.
+    ///
+    /// For the screens the mod navigates itself, where the only job left is making what is
+    /// on screen agree with what was said.
+    /// </summary>
+    public static void AdoptSelection(Selectable selectable)
+    {
+        if (selectable == null) return;
+
+        SetSelection(selectable);
+        try { _lastAnnounced = selectable.gameObject; }
+        catch { }
+    }
+
     /// <summary>What one control contributes to a whole-screen readout.</summary>
     private static string LineFor(Selectable s)
     {
