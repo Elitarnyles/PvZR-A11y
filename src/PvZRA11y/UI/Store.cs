@@ -1,6 +1,7 @@
 using System.Globalization;
 using Il2CppTekly.DataModels.Binders;
 using Il2CppTekly.DataModels.Models;
+using Il2CppTekly.PanelViews;
 using PvZRA11y.A11y;
 using PvZRA11y.Config;
 using PvZRA11y.Gameplay;
@@ -92,13 +93,107 @@ public static class Store
     /// switched off, with no way to move the conversation on and nothing saying why.
     /// </summary>
     public static bool DaveTalking()
-        => IsTrue(ModelText.FromRoot("store.isDaveTalking"));
+    {
+        // From the shop's own model rather than by a key into the root. The key was a guess
+        // taken from the prefabs and it answered nothing at all: the log showed the mod
+        // deciding Dave was silent while he was plainly mid-sentence on screen.
+        var model = Model();
+        if (model != null)
+        {
+            try { return IsTrue(model.m_isDaveTalking?.OnToDisplayString()); }
+            catch { /* fall through to the text on screen */ }
+        }
+
+        // Failing that, he is talking if there is something in the label that holds his
+        // words. Less precise, and it cannot be wrong about whether words are on screen.
+        return !string.IsNullOrWhiteSpace(SayingFromScreen());
+    }
 
     /// <summary>What he is saying right now, or null.</summary>
     public static string DaveSaying()
     {
-        string text = ModelText.FromRoot("store.daveSaying");
-        return string.IsNullOrWhiteSpace(text) ? null : UiText.Collapse(text);
+        var model = Model();
+        if (model != null)
+        {
+            try
+            {
+                string text = model.m_daveSaying?.OnToDisplayString();
+                if (!string.IsNullOrWhiteSpace(text)) return UiText.Collapse(text);
+            }
+            catch { }
+        }
+
+        return SayingFromScreen();
+    }
+
+    /// <summary>Dave's line as it is drawn, for when his model cannot be reached.</summary>
+    private static string SayingFromScreen()
+    {
+        try
+        {
+            foreach (PanelView panel in PanelScope.ShownPanels())
+            {
+                if (PanelScope.SafeId(panel) != PanelId) continue;
+
+                var texts = panel.GetComponentsInChildren<Il2CppTMPro.TMP_Text>(false);
+                if (texts == null) continue;
+
+                for (int i = 0; i < texts.Length; i++)
+                {
+                    Il2CppTMPro.TMP_Text text = texts[i];
+                    if (text == null) continue;
+
+                    string name;
+                    try { name = text.gameObject.name; } catch { continue; }
+                    if (!name.Contains("Dave", StringComparison.OrdinalIgnoreCase)
+                        && !name.Contains("Bubble", StringComparison.OrdinalIgnoreCase)
+                        && !name.Contains("Saying", StringComparison.OrdinalIgnoreCase)) continue;
+
+                    string raw;
+                    try { raw = text.text; } catch { continue; }
+                    if (string.IsNullOrWhiteSpace(raw)) continue;
+
+                    return UiText.Collapse(raw);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Core.Log.Warning($"[store] could not read what Dave is saying: {ex.Message}");
+        }
+
+        return null;
+    }
+
+    /// <summary>Everything about the shop's conversation, for the dump.</summary>
+    public static void Dump(System.Text.StringBuilder sb)
+    {
+        sb.AppendLine("--- shop ---");
+
+        var model = Model();
+        sb.AppendLine($"  model reached  : {(model != null)}");
+
+        if (model != null)
+        {
+            string talking, saying, index;
+            try { talking = model.m_isDaveTalking?.OnToDisplayString() ?? "<null>"; }
+            catch (Exception ex) { talking = "<threw: " + ex.Message + ">"; }
+            try { saying = model.m_daveSaying?.OnToDisplayString() ?? "<null>"; }
+            catch (Exception ex) { saying = "<threw: " + ex.Message + ">"; }
+            try { index = model.m_talkingAboutIndex?.OnToDisplayString() ?? "<null>"; }
+            catch (Exception ex) { index = "<threw: " + ex.Message + ">"; }
+
+            sb.AppendLine($"  isDaveTalking  : {talking}");
+            sb.AppendLine($"  daveSaying     : {saying}");
+            sb.AppendLine($"  talkingAbout   : {index}");
+        }
+
+        foreach (string key in new[] { "store", "store.isDaveTalking", "store.daveSaying" })
+            sb.AppendLine($"  root \"{key}\" : {ModelText.FromRoot(key) ?? "<null>"}");
+
+        sb.AppendLine($"  from the screen: {SayingFromScreen() ?? "<null>"}");
+        sb.AppendLine($"  talking?       : {DaveTalking()}");
+        sb.AppendLine();
     }
 
     /// <summary>
