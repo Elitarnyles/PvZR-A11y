@@ -798,9 +798,11 @@ public static class Lawn
                 return hurt == null ? name : $"{name}, {hurt}";
             }
 
-            if (_board.GetGridItemAt(GridItemType.Gravestone, x, y) != null) return Strings.T("lawn.gravestone");
-            if (_board.GetGridItemAt(GridItemType.Crater, x, y) != null) return Strings.T("lawn.crater");
-            if (_board.GetGridItemAt(GridItemType.Ladder, x, y) != null) return Strings.T("lawn.ladder");
+            // Every kind, not the three that happened to come up first. The vases of the
+            // Vase Breaker mini-game are grid items too — ScaryPot — and reading only
+            // gravestones meant a whole mini-game of invisible objects.
+            string item = GridItemAt(x, y);
+            if (item != null) return item;
             if (_board.IsIceAt(x, y)) return Strings.T("lawn.ice");
         }
         catch (Exception ex)
@@ -852,6 +854,49 @@ public static class Lawn
             return Strings.T("lawn.health", percent);
         }
         catch { return null; }
+    }
+
+    /// <summary>
+    /// Every kind of thing the game can put on a square, in the order it matters.
+    ///
+    /// Named from the mod's own strings where there is a name, and split from the game's own
+    /// word where there is not — so a type added by an update reads as words rather than
+    /// going silent.
+    /// </summary>
+    private static readonly GridItemType[] GridItems =
+    {
+        GridItemType.ScaryPot,
+        GridItemType.Gravestone,
+        GridItemType.Crater,
+        GridItemType.Ladder,
+        GridItemType.Brain,
+        GridItemType.IZombieBrain,
+        GridItemType.Rake,
+        GridItemType.Stinky,
+        GridItemType.Squirrel,
+        GridItemType.ZenTool,
+        GridItemType.PortalCircle,
+        GridItemType.PortalSquare,
+        GridItemType.AquariumShadow,
+    };
+
+    private static string GridItemAt(int x, int y)
+    {
+        for (int i = 0; i < GridItems.Length; i++)
+        {
+            GridItemType type = GridItems[i];
+
+            try
+            {
+                if (_board.GetGridItemAt(type, x, y) == null) continue;
+            }
+            catch { continue; }
+
+            string key = "lawn.item." + type;
+            return Strings.Has(key) ? Strings.T(key) : UiText.Prettify(type.ToString());
+        }
+
+        return null;
     }
 
     /// <summary>

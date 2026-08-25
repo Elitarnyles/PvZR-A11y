@@ -442,13 +442,46 @@ public static class Sonar
 
                 float posX = zombie.mPosX;
                 float posY = zombie.mPosY;
+
+                // A balloon zombie is drawn above the lawn, and its position says so, which
+                // put it a whole row too high in every scan. Taking the altitude back off
+                // gives the row it is actually over — which is the row you have to defend.
+                float altitude = 0f;
+                try { altitude = zombie.mAltitude; } catch { }
+                if (altitude > 0f) posY += altitude;
+
                 int row = Lawn.RowAt(posX, posY);
                 int column = Lawn.ColumnAt(posX, posY);
 
+                // A zombie eating a plant stands with its body past the square it is biting,
+                // so measuring by its own position reported it one column behind the plant —
+                // "the thing eating your Wall-nut is one square further along" is exactly
+                // backwards. While it is eating, the game's own target column is the answer.
+                try
+                {
+                    if (zombie.mIsEating)
+                    {
+                        int target = zombie.mTargetCol;
+                        if (target >= 0 && target < Lawn.Columns) column = target;
+                    }
+                }
+                catch { /* keep the measured column */ }
+
                 if (verbose)
-                    Core.Log.Msg($"[sonar] {zombie.mZombieType} at x={posX:F0} y={posY:F0}" +
-                                 $" -> row {row + 1}, column {(column < 0 ? "off board" : (column + 1).ToString())}" +
-                                 $", inPlay={InPlay(zombie)}");
+                {
+                    // Altitude and the eating flag are printed because the two corrections
+                    // above depend on them, and because the sign of an altitude is the kind
+                    // of thing that is fifty-fifty until something measures it.
+                    string eating = "?";
+                    string targetCol = "?";
+                    try { eating = zombie.mIsEating.ToString(); } catch { }
+                    try { targetCol = zombie.mTargetCol.ToString(); } catch { }
+
+                    Core.Log.Msg($"[sonar] {zombie.mZombieType} at x={posX:F0} y={zombie.mPosY:F0}" +
+                                 $" altitude={altitude:F0} -> row {row + 1}," +
+                                 $" column {(column < 0 ? "off board" : (column + 1).ToString())}" +
+                                 $" (eating={eating}, targetCol={targetCol}), inPlay={InPlay(zombie)}");
+                }
 
                 if (onlyRow.HasValue && row != onlyRow.Value) continue;
 
