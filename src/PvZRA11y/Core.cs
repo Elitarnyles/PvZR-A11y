@@ -92,6 +92,7 @@ public class Core : MelonMod
         ("almanac",      UI.Almanac.Tick),
         ("dialogue",     Gameplay.Dialogue.Tick),
         ("focus",        Focus.Update),
+        ("readiness",    Focus.TickReadiness),
         ("text entry",   TextEntry.Update),
         ("messages",     Patches.MessagePatch.Tick),
         ("seed chooser", Gameplay.SeedChooser.Tick),

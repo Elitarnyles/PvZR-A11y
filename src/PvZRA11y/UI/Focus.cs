@@ -335,7 +335,7 @@ public static class Focus
         var visible = CollectVisible();
         if (visible.Count == 0)
         {
-            Speech.SayVerbatim(Strings.T("msg.empty_screen"), "read screen");
+            Speech.SayVerbatim(Strings.T(EmptyScreenReason()), "read screen");
             return;
         }
 
@@ -370,6 +370,30 @@ public static class Focus
         Speech.SayVerbatim(string.Join(". ", parts), "read screen");
     }
 
+    private static bool _wasEmpty;
+
+    /// <summary>
+    /// Says when a screen that had nothing on it becomes usable.
+    ///
+    /// Screens in this game animate in, with their buttons switched off until they have
+    /// finished. Without this the player is left pressing Tab into silence with no way to
+    /// know the moment it starts working, which is most of the wait.
+    /// </summary>
+    public static void TickReadiness()
+    {
+        bool empty;
+        try { empty = CollectVisible().Count == 0; }
+        catch { return; }
+
+        if (empty == _wasEmpty) return;
+        _wasEmpty = empty;
+
+        // Only the transition into usable is worth a word. Going quiet is what leaving a
+        // screen sounds like, and that is already announced by the screen change.
+        if (!empty && ScreenTracker.CurrentId != null)
+            Speech.Say(Strings.T("msg.now_ready"), interrupt: false, context: "screen ready");
+    }
+
     /// <summary>
     /// Moves focus to a control the mod has already spoken about, without the watcher
     /// announcing it a second time.
@@ -384,6 +408,41 @@ public static class Focus
         SetSelection(selectable);
         try { _lastAnnounced = selectable.gameObject; }
         catch { }
+    }
+
+    /// <summary>
+    /// Why a screen has nothing to walk: genuinely empty, or not usable yet.
+    ///
+    /// The two sound alike and mean opposite things. Crazy Dave's shop before the taco
+    /// mini-game has three buttons that the game has switched off while the scene plays,
+    /// and saying "no controls found" there reads as a broken screen when the right answer
+    /// is "wait a moment". Told apart by asking why each control was rejected.
+    /// </summary>
+    private static string EmptyScreenReason()
+    {
+        try
+        {
+            var all = Selectable.allSelectablesArray;
+            if (all == null) return "msg.empty_screen";
+
+            for (int i = 0; i < all.Length; i++)
+            {
+                Selectable s = all[i];
+                if (s == null) continue;
+                if (!UiText.IsVisible(s)) continue;
+
+                // On screen, in a panel on display, and merely switched off. That is a
+                // control which is going to become usable, not one that is not there.
+                if (UiText.IsInteractable(s)) continue;
+                if (!PanelScope.Evaluate(s).Reachable && PanelScope.PanelIdOf(s) != PanelScope.FrontPanelId)
+                    continue;
+
+                return "msg.not_ready";
+            }
+        }
+        catch { /* fall through to the plainer answer */ }
+
+        return "msg.empty_screen";
     }
 
     /// <summary>What one control contributes to a whole-screen readout.</summary>
@@ -403,7 +462,7 @@ public static class Focus
         var visible = CollectVisible();
         if (visible.Count == 0)
         {
-            Speech.Say(Strings.T("msg.empty_screen"), context: "focus walk");
+            Speech.Say(Strings.T(EmptyScreenReason()), context: "focus walk");
             return;
         }
 

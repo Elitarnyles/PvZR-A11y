@@ -53,6 +53,8 @@ public static class Strings
         ["msg.speech_off"] = "Speech off.",
         ["msg.nothing_focused"] = "Nothing is focused.",
         ["msg.empty_screen"] = "No controls found on this screen.",
+        ["msg.not_ready"] = "Nothing here can be used yet.",
+        ["msg.now_ready"] = "Ready.",
         ["msg.screen_is"] = "Screen: {0}.",
         ["msg.controls_count"] = "{0} controls.",
         ["msg.dump_written"] = "Screen contents written to the log.",
