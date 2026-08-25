@@ -112,6 +112,10 @@ public static class Hotkeys
         // Only on the lawn: Backspace means "go back" in menus, and the game owns it there.
         if (Lawn.HasInput && Pressed(kb, _shovel)) { LawnInput.Shovel(); return; }
 
+        // Except in the shop, where the game switches its own way out off and leaves nothing
+        // to walk to. Backspace already means "back" everywhere a player expects it.
+        if (Store.IsActive && Pressed(kb, _shovel) && Store.Leave()) return;
+
         // The same key that starts a level from the chooser reads the deck once you are on
         // the lawn. Both answer "what have I got to work with", and on the lawn it is
         // otherwise doing nothing at all.

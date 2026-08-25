@@ -165,6 +165,54 @@ public static class Store
         return null;
     }
 
+    /// <summary>
+    /// Leaves the shop the way its own back button does.
+    ///
+    /// Needed because the visible button is switched off in the shop that opens before a
+    /// mini-game: it is on screen, it is in the right place, and the game will not let it
+    /// be pressed, so there was no way out at all. The button behind it is a model, and
+    /// the model can be asked whether it is willing before it is used — this never presses
+    /// something the game is holding shut.
+    /// </summary>
+    public static bool Leave()
+    {
+        var model = Model();
+        if (model == null) return false;
+
+        ButtonModel back;
+        try { back = model.m_backButtonModel; }
+        catch (Exception ex)
+        {
+            Core.Log.Warning($"[store] the back button could not be reached: {ex.Message}");
+            return false;
+        }
+
+        if (back == null) return false;
+
+        bool willing;
+        try { willing = back.IsInteractable; }
+        catch { willing = false; }
+
+        if (!willing)
+        {
+            Core.Log.Msg("[store] the back button is not accepting presses");
+            Speech.SayVerbatim(Strings.T("store.cannot_leave"), "store back");
+            return true;
+        }
+
+        try
+        {
+            back.Activate(0);
+            Core.Log.Msg("[store] left through the back button");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Core.Log.Warning($"[store] could not leave: {ex.Message}");
+            return false;
+        }
+    }
+
     /// <summary>Everything about the shop's conversation, for the dump.</summary>
     public static void Dump(System.Text.StringBuilder sb)
     {
@@ -193,6 +241,20 @@ public static class Store
 
         sb.AppendLine($"  from the screen: {SayingFromScreen() ?? "<null>"}");
         sb.AppendLine($"  talking?       : {DaveTalking()}");
+
+        if (model != null)
+        {
+            string buttons, back, label;
+            try { buttons = model.EnableButtons.ToString(); } catch (Exception ex) { buttons = "<threw: " + ex.Message + ">"; }
+            try { back = model.m_backButtonModel == null ? "<null>" : model.m_backButtonModel.IsInteractable.ToString(); }
+            catch (Exception ex) { back = "<threw: " + ex.Message + ">"; }
+            try { label = model.m_backLabelModel?.OnToDisplayString() ?? "<null>"; }
+            catch (Exception ex) { label = "<threw: " + ex.Message + ">"; }
+
+            sb.AppendLine($"  EnableButtons  : {buttons}");
+            sb.AppendLine($"  back accepts   : {back}");
+            sb.AppendLine($"  back label     : {label}");
+        }
         sb.AppendLine();
     }
 

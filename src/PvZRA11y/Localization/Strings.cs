@@ -76,6 +76,7 @@ public static class Strings
         // The shop.
         ["store.coins"] = "You have {0} coins.",
         ["store.coins_unknown"] = "Cannot tell how many coins you have.",
+        ["store.cannot_leave"] = "The shop will not let you leave yet.",
         ["store.sold_out"] = "sold out",
         ["store.coming_soon"] = "coming soon",
         ["store.unavailable"] = "not available yet",
