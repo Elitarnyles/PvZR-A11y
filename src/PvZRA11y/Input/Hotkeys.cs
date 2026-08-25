@@ -163,6 +163,10 @@ public static class Hotkeys
             // through to whatever was focused on the screen before and answers "Not
             // available from here" - leaving a conversation that cannot be got out of.
             if (Lawn.DialogueInFront && Gameplay.Dialogue.Advance()) return;
+
+            // Crazy Dave also talks inside the shop panel, where there is no speech bubble
+            // to notice and the shop's own buttons are switched off until he has finished.
+            if (Store.IsActive && Store.DaveTalking() && Store.AdvanceDave()) return;
             if (LawnInput.Plant()) return;
             Focus.ActivateCurrent();
         }

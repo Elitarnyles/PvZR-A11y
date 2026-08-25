@@ -437,7 +437,11 @@ public static class Focus
                 if (!PanelScope.Evaluate(s).Reachable && PanelScope.PanelIdOf(s) != PanelScope.FrontPanelId)
                     continue;
 
-                return "msg.not_ready";
+                // Except when someone is talking: then the buttons are off because the
+                // conversation is not finished, and the answer is a key press rather
+                // than patience. Saying "wait" there sent the player waiting for
+                // something that was never going to happen on its own.
+                return Store.DaveTalking() ? "msg.press_to_continue" : "msg.not_ready";
             }
         }
         catch { /* fall through to the plainer answer */ }

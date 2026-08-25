@@ -54,6 +54,7 @@ public static class Strings
         ["msg.nothing_focused"] = "Nothing is focused.",
         ["msg.empty_screen"] = "No controls found on this screen.",
         ["msg.not_ready"] = "Nothing here can be used yet.",
+        ["msg.press_to_continue"] = "Crazy Dave is talking. Press Enter to go on.",
         ["msg.now_ready"] = "Ready.",
         ["msg.screen_is"] = "Screen: {0}.",
         ["msg.controls_count"] = "{0} controls.",

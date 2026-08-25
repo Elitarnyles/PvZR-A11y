@@ -79,6 +79,88 @@ public static class Store
 
     #endregion
 
+    #region Crazy Dave in the shop
+
+    private static string _lastSaying;
+
+    /// <summary>
+    /// True while Crazy Dave is talking on the shop screen.
+    ///
+    /// His words appear inside the shop panel itself, not in the speech bubble the rest of
+    /// the game uses, so nothing that watches for that bubble sees this at all. Before the
+    /// taco mini-game it left the player on a screen whose three buttons the game had
+    /// switched off, with no way to move the conversation on and nothing saying why.
+    /// </summary>
+    public static bool DaveTalking()
+        => IsTrue(ModelText.FromRoot("store.isDaveTalking"));
+
+    /// <summary>What he is saying right now, or null.</summary>
+    public static string DaveSaying()
+    {
+        string text = ModelText.FromRoot("store.daveSaying");
+        return string.IsNullOrWhiteSpace(text) ? null : UiText.Collapse(text);
+    }
+
+    /// <summary>
+    /// Moves his dialogue on, the way clicking the shop does.
+    ///
+    /// Through the shop's own model rather than through the gameplay activity: the shop is
+    /// opened from the menu and there is no board behind it, so the route that works during
+    /// a level is not there.
+    /// </summary>
+    public static bool AdvanceDave()
+    {
+        Il2CppReloaded.DataModels.StoreModel model = Model();
+        if (model == null) return false;
+
+        try
+        {
+            model.AdvanceCrazyDaveDialog();
+            Core.Log.Msg("[store] advanced Crazy Dave");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Core.Log.Warning($"[store] could not advance Crazy Dave: {ex.Message}");
+            return false;
+        }
+    }
+
+    private static Il2CppReloaded.DataModels.StoreModel Model()
+    {
+        try
+        {
+            RootModel root = RootModel.Instance;
+            if (root == null) return null;
+
+            IModel model = null;
+            if (!root.TryGetModel("store", out model) || model == null) return null;
+
+            return model.TryCast<Il2CppReloaded.DataModels.StoreModel>();
+        }
+        catch (Exception ex)
+        {
+            if (Settings.VerboseLogging.Value)
+                Core.Log.Msg($"[store] the shop's model could not be reached: {ex.Message}");
+            return null;
+        }
+    }
+
+    /// <summary>Reads out each new line he says. Once per frame from Core.OnUpdate.</summary>
+    public static void Tick()
+    {
+        if (!IsActive) { _lastSaying = null; return; }
+
+        string saying = DaveSaying();
+        if (string.IsNullOrWhiteSpace(saying)) return;
+        if (saying == _lastSaying) return;
+
+        _lastSaying = saying;
+        Speech.Say(saying, interrupt: true, context: "store dave");
+    }
+
+    #endregion
+
     #region The purse
 
     /// <summary>
