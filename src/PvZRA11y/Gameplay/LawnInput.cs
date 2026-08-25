@@ -38,6 +38,7 @@ public static class LawnInput
     {
         if (!Lawn.IsOnBoard) return;
 
+        TickPickupVerify();
         TickNumberKeys();
         TickSeedSelection();
         TickSunCollection();
@@ -55,6 +56,9 @@ public static class LawnInput
     public static bool AnnounceBank()
     {
         if (!Lawn.IsOnBoard) return false;
+
+        // Where there is no deck, "read the bank" means the plants lying about instead.
+        if (Seeds.SlotCount() <= 0 && AnnouncePickups()) return true;
 
         string bank = Seeds.DescribeBank();
         if (string.IsNullOrEmpty(bank)) return false;
@@ -128,7 +132,28 @@ public static class LawnInput
             if (!pressed) continue;
 
             // The game numbers the bank one to ten with zero at the end, matching the keys.
-            _pendingDigitSlot = digit == 0 ? 9 : digit - 1;
+            int wanted = digit == 0 ? 9 : digit - 1;
+
+            // On a level with no deck the digits take the nth plant off the ground, which
+            // is the only meaning they can have there.
+            if (Seeds.SlotCount() <= 0)
+            {
+                var pickups = Lawn.Pickups();
+                if (wanted < pickups.Count)
+                {
+                    _pickupCursor = wanted;
+                    TakeAndAnnounce(pickups[wanted]);
+                }
+                else
+                {
+                    Speech.Say(Strings.T("pickup.none_there", wanted + 1),
+                               interrupt: true, context: "pickup", allowRepeat: true);
+                }
+
+                return;
+            }
+
+            _pendingDigitSlot = wanted;
             _pendingDigitFrom = Seeds.SelectedIndex();
             return;
         }
@@ -248,9 +273,105 @@ public static class LawnInput
     private const int MaxSweepFailures = 3;
 
     /// <summary>Steps through the seed slots. Announcement comes from the selection watcher.</summary>
+    private static int _pickupCursor;
+    private static Lawn.Pickup? _pendingPickup;
+    private static int _pendingPickupFrames;
+
+    /// <summary>How long to give the game to hand over a plant before calling it a miss.</summary>
+    private const int PickupVerifyFrames = 10;
+
+    /// <summary>
+    /// Takes one plant off the ground and says so once the game agrees it happened.
+    ///
+    /// The click can miss — a coin moves while it falls, and its clickable box is smaller
+    /// than the square it sits on. Announcing the pickup before checking would tell the
+    /// player they are carrying a plant they are not, which is worse than silence.
+    /// </summary>
+    private static void TakeAndAnnounce(Lawn.Pickup taken)
+    {
+        _pendingPickup = null;
+
+        if (!Lawn.TakePickup(taken))
+        {
+            Speech.Say(Strings.T("pickup.cannot_take"), context: "pickup");
+            return;
+        }
+
+        if (Lawn.HeldSeed() != Il2CppReloaded.Gameplay.SeedType.None)
+        {
+            AnnounceTaken(taken);
+            return;
+        }
+
+        // Not in hand yet. It may simply need a frame, so wait rather than judge.
+        _pendingPickup = taken;
+        _pendingPickupFrames = 0;
+    }
+
+    private static void AnnounceTaken(Lawn.Pickup taken) =>
+        Speech.Say(Strings.T("pickup.took", Lawn.PlantName(taken.Type),
+                             taken.Row + 1, taken.Column + 1),
+                   interrupt: true, context: "pickup", allowRepeat: true);
+
+    private static void TickPickupVerify()
+    {
+        if (_pendingPickup == null) return;
+
+        Lawn.Pickup taken = _pendingPickup.Value;
+
+        if (Lawn.HeldSeed() != Il2CppReloaded.Gameplay.SeedType.None)
+        {
+            _pendingPickup = null;
+            AnnounceTaken(taken);
+            return;
+        }
+
+        if (++_pendingPickupFrames < PickupVerifyFrames) return;
+
+        _pendingPickup = null;
+        Core.Log.Warning($"[lawn] clicked {taken.Type} at row {taken.Row + 1}," +
+                         $" column {taken.Column + 1} but nothing reached the cursor" +
+                         $" within {PickupVerifyFrames} frames");
+        Speech.Say(Strings.T("pickup.cannot_take"), context: "pickup");
+    }
+
+    /// <summary>
+    /// Takes the next plant lying on the lawn.
+    ///
+    /// Vase Breaker has no seed bank: what a vase drops falls on the ground and is picked
+    /// up from there. The keys that cycle the deck do this instead when there is no deck,
+    /// which is where the original PvZ accessibility mod puts it.
+    /// </summary>
+    private static bool CyclePickup(int delta)
+    {
+        var pickups = Lawn.Pickups();
+        if (pickups.Count == 0) return false;
+
+        _pickupCursor = ((_pickupCursor + delta) % pickups.Count + pickups.Count) % pickups.Count;
+        TakeAndAnnounce(pickups[_pickupCursor]);
+        return true;
+    }
+
+    /// <summary>Says what is lying on the lawn, without taking any of it.</summary>
+    public static bool AnnouncePickups()
+    {
+        var pickups = Lawn.Pickups();
+        if (pickups.Count == 0) return false;
+
+        var parts = new List<string>(pickups.Count);
+        foreach (Lawn.Pickup p in pickups)
+            parts.Add(Strings.T("pickup.at", Lawn.PlantName(p.Type), p.Row + 1, p.Column + 1));
+
+        Speech.SayVerbatim(string.Join(", ", parts), "pickups");
+        return true;
+    }
+
     public static bool CycleSeed(int delta)
     {
         if (!Lawn.HasInput) return false;
+
+        // No deck at all means a level that hands its plants out on the ground instead.
+        if (Seeds.SlotCount() <= 0 && CyclePickup(delta)) return true;
 
         int before = Seeds.SelectedIndex();
 
@@ -280,7 +401,9 @@ public static class LawnInput
     {
         if (!Lawn.HasInput) return false;
 
-        if (Seeds.SelectedIndex() < 0)
+        // Something in hand always means "put it down", whether it came from the bank or
+        // off the ground. Only with empty hands does the key mean anything else.
+        if (Seeds.SelectedIndex() < 0 && Lawn.HeldSeed() == Il2CppReloaded.Gameplay.SeedType.None)
         {
             // Nothing in hand is the normal state in Vase Breaker, where the key breaks the
             // vase you are standing on instead. What comes out of it announces itself:

@@ -757,6 +757,10 @@ public static class Lawn
         string standing = Sonar.DescribeZombiesAt(y, x);
         if (Sonar.LastCollectFailed || Sonar.LastSkipped > 0) _readFailed = true;
 
+        // Something dropped on this square. Nothing is planted there, so without this the
+        // square reads as empty while a plant is lying on it waiting to be picked up.
+        string lying = PickupOn(x, y);
+
         if (!string.IsNullOrEmpty(occupant))
         {
             parts.Add(occupant);
@@ -771,9 +775,11 @@ public static class Lawn
 
             if (!string.IsNullOrEmpty(ground)) parts.Add(ground);
             else if (_readFailed) parts.Add(Strings.T("lawn.unreadable"));
-            else if (string.IsNullOrEmpty(standing)) parts.Add(Strings.T("lawn.empty"));
+            else if (string.IsNullOrEmpty(standing) && string.IsNullOrEmpty(lying))
+                parts.Add(Strings.T("lawn.empty"));
         }
 
+        if (!string.IsNullOrEmpty(lying)) parts.Add(lying);
         if (!string.IsNullOrEmpty(standing)) parts.Add(standing);
 
         string planting = PlantingStateOf(x, y);
@@ -783,6 +789,20 @@ public static class Lawn
             parts.Add(Strings.T("lawn.position", y + 1, x + 1));
 
         return string.Join(", ", parts);
+    }
+
+    /// <summary>What is lying on a square waiting to be picked up, or null.</summary>
+    private static string PickupOn(int x, int y)
+    {
+        var pickups = Pickups();
+        for (int i = 0; i < pickups.Count; i++)
+        {
+            Pickup pickup = pickups[i];
+            if (pickup.Column == x && pickup.Row == y)
+                return Strings.T("pickup.lying", PlantName(pickup.Type));
+        }
+
+        return null;
     }
 
     /// <summary>The plant or obstacle occupying a square, or null when it is bare.</summary>
@@ -947,7 +967,22 @@ public static class Lawn
         {
             CursorObject cursor = _board.CursorObjects[Player];
             if (cursor == null) return SeedType.None;
-            return cursor.CursorType == CursorType.PlantFromBank ? cursor.Type : SeedType.None;
+
+            // Every way the game lets you hold a plant, not just the seed bank. Vase Breaker
+            // hands them out on the ground, the Zen Garden through a glove, Wall-nut Bowling
+            // through a wheelbarrow — all of them are "you are carrying something to put
+            // down", and treating only the bank as real left those levels unplantable.
+            switch (cursor.CursorType)
+            {
+                case CursorType.PlantFromBank:
+                case CursorType.PlantFromUsableCoin:
+                case CursorType.PlantFromGlove:
+                case CursorType.PlantFromDuplicator:
+                case CursorType.PlantFromWheelBarrow:
+                    return cursor.Type;
+                default:
+                    return SeedType.None;
+            }
         }
         catch { return SeedType.None; }
     }
@@ -980,6 +1015,99 @@ public static class Lawn
     /// at all. The original PvZ accessibility mod puts this on the same key, so anyone
     /// arriving from it already has the habit.
     /// </summary>
+    /// <summary>One plant lying on the lawn, waiting to be picked up.</summary>
+    public readonly record struct Pickup(SeedType Type, int Row, int Column, float X, float Y);
+
+    /// <summary>
+    /// The plants lying on the ground, in reading order.
+    ///
+    /// Vase Breaker has no seed bank at all: what comes out of a vase falls on the lawn as
+    /// something to pick up, and the mod was reading a deck that does not exist there. The
+    /// game keeps these among the board's collectables, each carrying which plant it is.
+    /// </summary>
+    public static List<Pickup> Pickups()
+    {
+        var found = new List<Pickup>();
+        if (_board == null) return found;
+
+        try
+        {
+            var coins = _board.m_coins;
+            if (coins == null) return found;
+
+            int count = coins.Count;
+            for (int i = 0; i < count; i++)
+            {
+                try
+                {
+                    Coin coin = coins[i];
+                    if (coin == null || coin.mDead || coin.mIsBeingCollected) continue;
+
+                    CoinType type = coin.mType;
+                    if (type != CoinType.UsableSeedPacket && type != CoinType.PresentPlant) continue;
+
+                    // The middle of the box the game itself would test a click against.
+                    // A coin's own position is the corner of its picture, so clicking there
+                    // can land outside the thing you are aiming at.
+                    float x = coin.mPosX;
+                    float y = coin.mPosY;
+                    try
+                    {
+                        UnityEngine.Rect click = coin.GetClickRect();
+                        if (click.width > 0f && click.height > 0f)
+                        {
+                            x = click.x + click.width / 2f;
+                            y = click.y + click.height / 2f;
+                        }
+                    }
+                    catch { /* the corner will have to do */ }
+
+                    // What the packet finally turns into, which is not always what it says
+                    // it holds — a present sorts out its plant when asked.
+                    SeedType seed;
+                    try { seed = coin.GetFinalSeedPacketType(); }
+                    catch { seed = coin.mUsableSeedType; }
+
+                    found.Add(new Pickup(seed, RowAt(x, y), ColumnAt(x, y), x, y));
+                }
+                catch { /* one bad entry must not cost the rest */ }
+            }
+        }
+        catch (Exception ex)
+        {
+            Core.Log.Warning($"[lawn] could not read what is lying on the lawn: {ex.Message}");
+        }
+
+        // Reading order, so "the next one" means the next one across the lawn rather than
+        // whatever order the game happens to hold them in.
+        found.Sort((a, b) => a.Row != b.Row ? a.Row.CompareTo(b.Row) : a.Column.CompareTo(b.Column));
+        return found;
+    }
+
+    /// <summary>Picks one up, by clicking it the way a mouse would.</summary>
+    public static bool TakePickup(Pickup pickup)
+    {
+        if (_board == null) return false;
+
+        try
+        {
+            int px = (int)Math.Round(pickup.X);
+            int py = (int)Math.Round(pickup.Y);
+
+            Core.Log.Msg($"[lawn] taking {pickup.Type} at pixel {px},{py}" +
+                         $" (row {pickup.Row + 1}, column {pickup.Column + 1})");
+
+            _board.MouseDown(px, py, 1, Player);
+            _board.MouseUp(px, py, 1, Player);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Core.Log.Warning($"Could not pick up {pickup.Type}: {ex.Message}");
+            return false;
+        }
+    }
+
     public static bool BreakVaseAtCursor(out string broke)
     {
         broke = null;
