@@ -282,6 +282,16 @@ public static class LawnInput
 
         if (Seeds.SelectedIndex() < 0)
         {
+            // Nothing in hand is the normal state in Vase Breaker, where the key breaks the
+            // vase you are standing on instead. What comes out of it announces itself:
+            // a plant through the board, a zombie through the arrival watcher.
+            if (Lawn.BreakVaseAtCursor(out string broke))
+            {
+                Speech.Say(Strings.T("lawn.broke", broke), interrupt: true,
+                           context: "vase", allowRepeat: true);
+                return true;
+            }
+
             Speech.Say(Strings.T("seeds.nothing_held"), context: "plant");
             return true;
         }

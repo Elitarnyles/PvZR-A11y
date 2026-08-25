@@ -972,6 +972,48 @@ public static class Lawn
     /// means sun is spent, cooldowns start and every placement rule is enforced — none of
     /// which we would want to reimplement.
     /// </summary>
+    /// <summary>
+    /// Breaks the vase under the cursor, if there is one.
+    ///
+    /// A vase is broken by clicking it, and in Vase Breaker there is nothing to hold — so
+    /// the key that plants had been answering "nothing in hand" and never sending the click
+    /// at all. The original PvZ accessibility mod puts this on the same key, so anyone
+    /// arriving from it already has the habit.
+    /// </summary>
+    public static bool BreakVaseAtCursor(out string broke)
+    {
+        broke = null;
+        if (_board == null) return false;
+        if (!TryGetPosition(out int x, out int y)) return false;
+
+        try
+        {
+            if (_board.GetGridItemAt(GridItemType.ScaryPot, x, y) == null) return false;
+        }
+        catch { return false; }
+
+        if (!TryPixelForSquare(x, y, out int px, out int py))
+        {
+            Core.Log.Warning($"[lawn] no pixel position maps back to square {x},{y}; not breaking");
+            return false;
+        }
+
+        try
+        {
+            Core.Log.Msg($"[lawn] breaking the vase at pixel {px},{py} for square {x},{y}");
+            _board.MouseDown(px, py, 1, Player);
+            _board.MouseUp(px, py, 1, Player);
+
+            broke = Strings.T("lawn.item.ScaryPot");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Core.Log.Warning($"Could not break the vase at {x},{y}: {ex.Message}");
+            return false;
+        }
+    }
+
     public static bool PlantAtCursor()
     {
         if (_board == null) return false;

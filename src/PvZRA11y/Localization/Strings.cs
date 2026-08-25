@@ -104,6 +104,7 @@ public static class Strings
         ["lawn.roof"] = "roof",
         ["lawn.ice"] = "ice",
         ["lawn.item.ScaryPot"] = "vase",
+        ["lawn.broke"] = "Broke the {0}",
         ["lawn.item.Gravestone"] = "gravestone",
         ["lawn.item.Crater"] = "crater",
         ["lawn.item.Ladder"] = "ladder",

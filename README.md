@@ -119,7 +119,8 @@ so if you know that one you already know this.
 ### On the lawn
 
 - **Arrow keys** — move the cursor one square. Walking into a wall says which wall.
-- **Enter** — plant what is in your hand.
+- **Enter** — plant what is in your hand. In Vase Breaker, with nothing in hand, it breaks
+  the vase you are standing on.
 - **Backspace** — dig up the plant under the cursor. Whatever you were holding goes back into
   your hand afterwards. In Whack a Zombie it swings the mallet instead, and says what you hit.
 - **F5** — freeze and unfreeze the game. You can still look around while frozen.

@@ -63,6 +63,7 @@ public class Core : MelonMod
                 "F3 sun, F4 progress.");
         Log.Msg("Keys, almanac: arrows move between entries, Enter opens one, F4 reads it in full.");
         Log.Msg("Keys, Whack a Zombie: arrows move, Backspace swings the mallet.");
+        Log.Msg("Keys, Vase Breaker: arrows move, Enter breaks the vase you are on.");
         Log.Msg("Keys, shop: arrows and Tab move, Enter buys or moves Crazy Dave on, Backspace leaves, F1 says how many coins you have.");
         Log.Msg("Keys, anywhere: LeftCtrl silence, Ctrl+Alt+A toggle speech, F10 dump screen to log, F11 self-test.");
     }
