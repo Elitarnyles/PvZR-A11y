@@ -38,6 +38,7 @@ public static class LawnInput
     {
         if (!Lawn.IsOnBoard) return;
 
+        TickPickupTrace();
         TickPickupVerify();
         TickNumberKeys();
         TickSeedSelection();
@@ -57,10 +58,22 @@ public static class LawnInput
     {
         if (!Lawn.IsOnBoard) return false;
 
-        // Where there is no deck, "read the bank" means the plants lying about instead.
-        if (Seeds.SlotCount() <= 0 && AnnouncePickups()) return true;
+        // The ground and the bank are separate facts and both get read. Tying the ground
+        // readout to "the bank is empty" was the mistake: Vase Breaker has a one-slot bank,
+        // so the test never once came out true on the level it was written for.
+        var lying = new List<string>();
+        foreach (Lawn.Pickup p in Lawn.Pickups())
+            lying.Add(Strings.T("pickup.at", Lawn.PlantName(p.Type), p.Row + 1, p.Column + 1));
 
         string bank = Seeds.DescribeBank();
+
+        if (lying.Count > 0)
+        {
+            string ground = Strings.T("pickup.on_the_lawn", string.Join(", ", lying));
+            Speech.SayVerbatim(string.IsNullOrEmpty(bank) ? ground : $"{ground}. {bank}", "bank");
+            return true;
+        }
+
         if (string.IsNullOrEmpty(bank)) return false;
 
         Speech.SayVerbatim(bank, "seed bank");
@@ -134,20 +147,24 @@ public static class LawnInput
             // The game numbers the bank one to ten with zero at the end, matching the keys.
             int wanted = digit == 0 ? 9 : digit - 1;
 
-            // On a level with no deck the digits take the nth plant off the ground, which
-            // is the only meaning they can have there.
-            if (Seeds.SlotCount() <= 0)
+            // Past the end of the bank the digits carry on into what is lying on the lawn,
+            // so one row of keys covers everything a player can pick up. On an ordinary level
+            // there is nothing lying about and the numbering is unchanged.
+            int slots = Seeds.SlotCount();
+            if (wanted >= slots)
             {
                 var pickups = Lawn.Pickups();
-                if (wanted < pickups.Count)
+                int onGround = wanted - slots;
+
+                if (onGround < pickups.Count)
                 {
-                    _pickupCursor = wanted;
-                    TakeAndAnnounce(pickups[wanted]);
+                    _pickupCursor = onGround;
+                    TakeAndAnnounce(pickups[onGround]);
                 }
                 else
                 {
-                    Speech.Say(Strings.T("pickup.none_there", wanted + 1),
-                               interrupt: true, context: "pickup", allowRepeat: true);
+                    Speech.Say(Strings.T("seeds.no_such_slot", wanted + 1),
+                               interrupt: true, context: "seed refused", allowRepeat: true);
                 }
 
                 return;
@@ -313,6 +330,26 @@ public static class LawnInput
                              taken.Row + 1, taken.Column + 1),
                    interrupt: true, context: "pickup", allowRepeat: true);
 
+    private static int _lastPickupCount = -1;
+
+    /// <summary>
+    /// Logs how many plants are lying on the lawn whenever that changes.
+    ///
+    /// This is the one line that settles whether a vase really drops a collectable rather
+    /// than filling the seed bank. Without it the mod's silence is ambiguous: it could mean
+    /// nothing came out, or that the mod is looking in the wrong place.
+    /// </summary>
+    private static void TickPickupTrace()
+    {
+        int count;
+        try { count = Lawn.Pickups().Count; }
+        catch { return; }
+
+        if (count == _lastPickupCount) return;
+        _lastPickupCount = count;
+        Core.Log.Msg($"[lawn] plants lying on the lawn: {count}");
+    }
+
     private static void TickPickupVerify()
     {
         if (_pendingPickup == null) return;
@@ -338,9 +375,9 @@ public static class LawnInput
     /// <summary>
     /// Takes the next plant lying on the lawn.
     ///
-    /// Vase Breaker has no seed bank: what a vase drops falls on the ground and is picked
-    /// up from there. The keys that cycle the deck do this instead when there is no deck,
-    /// which is where the original PvZ accessibility mod puts it.
+    /// The keys that cycle the deck reach for the ground first, because a dropped plant
+    /// times out and a bank slot does not. This is where the original PvZ accessibility mod
+    /// puts it too.
     /// </summary>
     private static bool CyclePickup(int delta)
     {
@@ -352,26 +389,13 @@ public static class LawnInput
         return true;
     }
 
-    /// <summary>Says what is lying on the lawn, without taking any of it.</summary>
-    public static bool AnnouncePickups()
-    {
-        var pickups = Lawn.Pickups();
-        if (pickups.Count == 0) return false;
-
-        var parts = new List<string>(pickups.Count);
-        foreach (Lawn.Pickup p in pickups)
-            parts.Add(Strings.T("pickup.at", Lawn.PlantName(p.Type), p.Row + 1, p.Column + 1));
-
-        Speech.SayVerbatim(string.Join(", ", parts), "pickups");
-        return true;
-    }
-
     public static bool CycleSeed(int delta)
     {
         if (!Lawn.HasInput) return false;
 
-        // No deck at all means a level that hands its plants out on the ground instead.
-        if (Seeds.SlotCount() <= 0 && CyclePickup(delta)) return true;
+        // Anything lying on the lawn comes first, because it is the thing that disappears:
+        // a dropped plant times out, a bank slot does not.
+        if (CyclePickup(delta)) return true;
 
         int before = Seeds.SelectedIndex();
 
@@ -401,13 +425,23 @@ public static class LawnInput
     {
         if (!Lawn.HasInput) return false;
 
-        // Something in hand always means "put it down", whether it came from the bank or
-        // off the ground. Only with empty hands does the key mean anything else.
-        if (Seeds.SelectedIndex() < 0 && Lawn.HeldSeed() == Il2CppReloaded.Gameplay.SeedType.None)
+        // What is in hand is the only thing that decides this, and Lawn.HeldSeed asks the
+        // cursor. The old test also consulted the bank's "this slot is chosen" mark, which
+        // survives the cursor emptying - so one press of the cycle key left the mod believing
+        // a plant was in hand for the rest of the level, and Enter stopped breaking vases.
+        if (Lawn.HeldSeed() == Il2CppReloaded.Gameplay.SeedType.None)
         {
-            // Nothing in hand is the normal state in Vase Breaker, where the key breaks the
-            // vase you are standing on instead. What comes out of it announces itself:
-            // a plant through the board, a zombie through the arrival watcher.
+            // Empty hands, in the order a player would expect: take what is lying under you,
+            // otherwise break what is standing there.
+            Lawn.Pickup? lying = Lawn.PickupUnderCursor();
+            if (lying != null)
+            {
+                TakeAndAnnounce(lying.Value);
+                return true;
+            }
+
+            // What comes out of a vase announces itself: the mod reads the vase before the
+            // blow lands and says what was inside.
             if (Lawn.BreakVaseAtCursor(out string broke))
             {
                 Speech.Say(Strings.T("lawn.broke", broke), interrupt: true,

@@ -92,7 +92,11 @@ public static class Seeds
         try
         {
             var packets = Bank()?.SeedPackets;
-            if (packets == null || index >= packets.Length) return null;
+            // Bounded by the slots the bank actually has, not by the length of the array
+            // behind it. The array is longer: on a one-slot Vase Breaker bank it still holds
+            // five, and answering "slot 5, empty" tells a blind player he has four more
+            // slots to fill on a level that has one.
+            if (packets == null || index >= packets.Length || index >= SlotCount()) return null;
             return packets[index];
         }
         catch { return null; }
@@ -107,6 +111,7 @@ public static class Seeds
     {
         SeedBankGamepadControl control = Control();
         if (control == null || index < 0 || index >= SlotCount()) return false;
+        if (!CanPickUp(PacketAt(index))) return false;
 
         try
         {
@@ -139,6 +144,11 @@ public static class Seeds
         {
             int index = ((from + delta * step) % slots + slots) % slots;
             if (!SlotHasPlant(index)) continue;
+
+            // Never put an unusable packet in the cursor. A plant in hand stops the game
+            // hit-testing anything else on the lawn, so an unaffordable one taken by mistake
+            // takes the vases and the dropped plants with it.
+            if (!CanPickUp(PacketAt(index))) continue;
 
             try
             {
@@ -246,6 +256,32 @@ public static class Seeds
         if (packet == null) return false;
         try { return packet.PacketType != SeedType.None; }
         catch { return false; }
+    }
+
+    /// <summary>
+    /// The game's own answer to "can this be picked up right now".
+    ///
+    /// It weighs the things the mod cannot see from outside - whether the packet is active,
+    /// what the plant costs in this mode, whether the level allows picking at all - and the
+    /// mod used to re-derive that from sun and a refresh counter. Its verdict could
+    /// therefore disagree with the game's, and did: it handed the player a 150-sun Cherry
+    /// bomb at nothing sun, which then sat in the cursor and blocked everything else.
+    /// </summary>
+    public static bool CanPickUp(SeedPacket packet)
+    {
+        if (packet == null) return false;
+        try { return packet.CanPickUp(); }
+        catch { return true; }
+    }
+
+    /// <summary>Drops the bank's own "this slot is chosen" mark.</summary>
+    public static void ClearSelection()
+    {
+        SeedBankGamepadControl control = Control();
+        if (control == null) return;
+
+        try { control._clearSelection(); }
+        catch (Exception ex) { Core.Log.Warning($"Could not clear the seed selection: {ex.Message}"); }
     }
 
     /// <summary>True while the packet is still refilling rather than merely unaffordable.</summary>

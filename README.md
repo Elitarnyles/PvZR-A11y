@@ -129,12 +129,15 @@ so if you know that one you already know this.
 - **Minus** and **Equals** — cycle through the seed packets.
 - **1** to **0** — the game's own seed selection. If the game refuses a pick, the mod says why.
 
-On levels that have no seed bank at all — Vase Breaker is the one you meet first — the plants
-come out of the vases and land on the ground instead of arriving in a deck. There the same
-three keys pick them up: **Minus** and **Equals** step through what is lying about, and **1**
-to **0** take the first, second and so on, counted across the lawn from the back left. The mod
-only says you are carrying something once the game confirms it, so silence means the pickup
-missed. Squares announce what is lying on them as you walk past.
+A vase that holds a plant drops it on the ground rather than putting it in the seed bank, and
+it does not wait for ever. **Enter** on the square it landed on picks it up. **Minus** and
+**Equals** step through everything lying about before they reach the seed bank, and the
+number keys carry on past the last bank slot into the same list. Squares announce what is
+lying on them as you walk past, and **F6** reads the ground and the bank together.
+
+Picking a plant up needs an empty hand — that is the game's own rule, not the mod's — so the
+mod puts back whatever you were holding first, and says you are carrying the new plant only
+once the game confirms it. A vase says what came out of it as it breaks, never before.
 - **Tab** — the game's fast-forward. The mod announces the new speed.
 - **F1** — scan the current row: how many zombies, and each one's column, kind and state.
   Pressed twice quickly, it names the rows that have anything in them at all.

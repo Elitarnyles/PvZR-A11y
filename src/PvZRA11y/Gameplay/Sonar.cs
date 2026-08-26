@@ -536,7 +536,7 @@ public static class Sonar
     internal static bool LastCollectFailed;
 
 
-    private static string ZombieName(ZombieType type)
+    public static string ZombieName(ZombieType type)
     {
         string key = "zombie." + type;
         return Strings.Has(key) ? Strings.T(key) : UI.UiText.Prettify(type.ToString());

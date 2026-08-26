@@ -136,6 +136,17 @@ public static class SelfTest
         sb.AppendLine($"  roof            : {board.StageHasRoof()}");
         sb.AppendLine($"  fog             : {board.StageHasFog()}");
         sb.AppendLine($"  gravestones     : {board.StageHasGraveStones()}");
+        sb.AppendLine($"  vase breaker    : {Gameplay.Lawn.IsVaseBreakerLevel}");
+        sb.AppendLine($"  whack a zombie  : {Gameplay.Lawn.IsWhackAZombieLevel}");
+
+        // What is lying on the lawn, because a plant out of a vase is a thing with no sound
+        // of its own and a limited life. If this list is empty on a Vase Breaker level right
+        // after a plant vase was opened, the coin model behind the pickup keys is wrong.
+        var lying = Gameplay.Lawn.Pickups();
+        sb.AppendLine($"  lying on lawn   : {lying.Count}");
+        foreach (Gameplay.Lawn.Pickup p in lying)
+            sb.AppendLine($"      {Gameplay.Lawn.PlantName(p.Type)} at row {p.Row + 1}, column {p.Column + 1}"
+                          + $" (pixel {p.X:0},{p.Y:0})");
         sb.AppendLine($"  sun             : {Lawn.SunCount()}");
 
         int rows = Lawn.SafeRowCount();

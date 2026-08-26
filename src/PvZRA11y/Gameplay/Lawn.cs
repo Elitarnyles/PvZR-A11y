@@ -791,18 +791,31 @@ public static class Lawn
         return string.Join(", ", parts);
     }
 
-    /// <summary>What is lying on a square waiting to be picked up, or null.</summary>
-    private static string PickupOn(int x, int y)
+    /// <summary>The plant lying on a square, or null. One lookup for the readout and the key.</summary>
+    public static Pickup? PickupAt(int x, int y)
     {
         var pickups = Pickups();
         for (int i = 0; i < pickups.Count; i++)
         {
             Pickup pickup = pickups[i];
-            if (pickup.Column == x && pickup.Row == y)
-                return Strings.T("pickup.lying", PlantName(pickup.Type));
+            if (pickup.Column == x && pickup.Row == y) return pickup;
         }
 
         return null;
+    }
+
+    /// <summary>The plant lying under the cursor, or null.</summary>
+    public static Pickup? PickupUnderCursor()
+    {
+        if (!TryGetPosition(out int x, out int y)) return null;
+        return PickupAt(x, y);
+    }
+
+    /// <summary>What is lying on a square waiting to be picked up, or null.</summary>
+    private static string PickupOn(int x, int y)
+    {
+        Pickup? pickup = PickupAt(x, y);
+        return pickup == null ? null : Strings.T("pickup.lying", PlantName(pickup.Value.Type));
     }
 
     /// <summary>The plant or obstacle occupying a square, or null when it is bare.</summary>
@@ -1021,9 +1034,13 @@ public static class Lawn
     /// <summary>
     /// The plants lying on the ground, in reading order.
     ///
-    /// Vase Breaker has no seed bank at all: what comes out of a vase falls on the lawn as
-    /// something to pick up, and the mod was reading a deck that does not exist there. The
-    /// game keeps these among the board's collectables, each carrying which plant it is.
+    /// A vase holding a plant drops it on the lawn as a collectable rather than putting it
+    /// in the seed bank, so the game keeps it among the board's coins with the plant written
+    /// on it. It has a limited life and disappears if nobody comes for it.
+    ///
+    /// Vase Breaker does also have a seed bank - one slot, holding a Cherry bomb - and
+    /// assuming otherwise is what made this unreachable for a whole round of testing. The
+    /// two are independent: ask what is lying on the lawn, never whether a bank exists.
     /// </summary>
     public static List<Pickup> Pickups()
     {
@@ -1084,10 +1101,53 @@ public static class Lawn
         return found;
     }
 
+    /// <summary>
+    /// Puts back whatever is in hand, so that a plant lying on the lawn can be clicked.
+    ///
+    /// This is the whole reason the pickups were unreachable. The game hit-tests a dropped
+    /// seed packet only while the cursor is empty: with a plant from the bank in hand the
+    /// packet is not merely hard to hit, it is excluded from the hit test entirely, and the
+    /// click falls through to "try to plant here" instead. So the hand has to be emptied
+    /// first, and emptied the game's own way - setting the cursor type by hand would leave
+    /// the bank slot thinking it had been spent.
+    /// </summary>
+    public static bool ReleaseCursor()
+    {
+        if (_board == null) return false;
+
+        CursorType? held = CursorKind();
+        if (held is null or CursorType.Normal)
+        {
+            Seeds.ClearSelection();
+            return true;
+        }
+
+        try { _board.RefreshSeedPacketFromCursor(Player, false); }
+        catch (Exception ex) { Core.Log.Warning($"[lawn] could not put the held plant back: {ex.Message}"); }
+
+        // The bank also keeps its own "this slot is chosen" mark, which outlives the cursor.
+        // Left set, it makes the mod believe a plant is still in hand.
+        Seeds.ClearSelection();
+
+        if (CursorKind() != CursorType.Normal)
+        {
+            try { _board.ClearCursor(false, Player); }
+            catch (Exception ex) { Core.Log.Warning($"[lawn] could not clear the cursor: {ex.Message}"); }
+        }
+
+        CursorType? now = CursorKind();
+        Core.Log.Msg($"[lawn] hand emptied for a pickup: {held} -> {now?.ToString() ?? "none"}");
+        return now is null or CursorType.Normal;
+    }
+
     /// <summary>Picks one up, by clicking it the way a mouse would.</summary>
     public static bool TakePickup(Pickup pickup)
     {
         if (_board == null) return false;
+
+        // Must come first: the game will not even test the click against a seed packet while
+        // something is in hand.
+        ReleaseCursor();
 
         try
         {
@@ -1105,6 +1165,40 @@ public static class Lawn
         {
             Core.Log.Warning($"Could not pick up {pickup.Type}: {ex.Message}");
             return false;
+        }
+    }
+
+    /// <summary>
+    /// What a vase holds, as a phrase, or null when it cannot be read.
+    ///
+    /// A vase is a grid item carrying its own contents in plain fields: which of the three
+    /// kinds it is, and then the plant, the zombie or the amount of sun. Nothing has to be
+    /// deduced from what happens afterwards, which matters because a plant coming out makes
+    /// no sound of its own and a sun vase makes none either.
+    /// </summary>
+    private static string VaseContents(int x, int y)
+    {
+        try
+        {
+            GridItem pot = _board.GetGridItemAt(GridItemType.ScaryPot, x, y);
+            if (pot == null) return null;
+
+            switch (pot.mScaryPotType)
+            {
+                case ScaryPotType.Seed:
+                    return Strings.T("vase.plant", PlantName(pot.mSeedType));
+                case ScaryPotType.Zombie:
+                    return Strings.T("vase.zombie", Sonar.ZombieName(pot.mZombieType));
+                case ScaryPotType.Sun:
+                    return Strings.T("vase.sun", pot.mSunCount);
+                default:
+                    return null;
+            }
+        }
+        catch (Exception ex)
+        {
+            Core.Log.Warning($"[lawn] could not read what is in the vase at {x},{y}: {ex.Message}");
+            return null;
         }
     }
 
@@ -1128,11 +1222,17 @@ public static class Lawn
 
         try
         {
-            Core.Log.Msg($"[lawn] breaking the vase at pixel {px},{py} for square {x},{y}");
+            // Read before the click. The vase carries what is in it - the game decided that
+            // when it laid the level out - and once opened the object is gone. Spoken only
+            // after the break, never before: knowing in advance is the whole game.
+            string inside = VaseContents(x, y);
+
+            Core.Log.Msg($"[lawn] breaking the vase at pixel {px},{py} for square {x},{y}" +
+                         $" (inside: {inside ?? "unreadable"})");
             _board.MouseDown(px, py, 1, Player);
             _board.MouseUp(px, py, 1, Player);
 
-            broke = Strings.T("lawn.item.ScaryPot");
+            broke = inside ?? Strings.T("lawn.item.ScaryPot");
             return true;
         }
         catch (Exception ex)
@@ -1260,6 +1360,22 @@ public static class Lawn
     /// True on the mini-game where zombies pop out of the ground and are hit with a mallet.
     /// There is nothing to plant and nothing to dig up there; the same key swings instead.
     /// </summary>
+    /// <summary>
+    /// True on Vase Breaker, where the plants come out of vases instead of a deck.
+    ///
+    /// Asked of the game rather than guessed from the seed bank. The bank was the guess, and
+    /// it was wrong: level 4-5 has a one-slot bank holding a Cherry bomb, so every test of
+    /// the shape "no bank means Vase Breaker" answered no on the one level it existed for.
+    /// </summary>
+    public static bool IsVaseBreakerLevel
+    {
+        get
+        {
+            try { return _app != null && _app.IsScaryPotterLevel(); }
+            catch { return false; }
+        }
+    }
+
     public static bool IsWhackAZombieLevel
     {
         get
@@ -1401,6 +1517,8 @@ public static class Lawn
     /// problem with no clean answer: nothing on a coin says whether it has already been
     /// collected, so a hand-rolled sweep would keep grabbing items that are mid-flight.
     /// </summary>
+    private static bool _heldOffSweep;
+
     public static bool VacuumPickups(bool includeSun, bool includeItems)
     {
         if (_board == null) return false;
@@ -1421,6 +1539,22 @@ public static class Lawn
         }
 
         if (!includeItems) return any;
+
+        // A plant lying on the lawn is a collectable like any other, and the sweep would take
+        // it before the player ever reached it - silently, and with no way to get it back.
+        // Sun keeps being swept; only the item pass waits.
+        var lying = Pickups();
+        if (lying.Count > 0)
+        {
+            if (!_heldOffSweep)
+            {
+                _heldOffSweep = true;
+                Core.Log.Msg($"[lawn] holding off the item sweep; {lying.Count} plant(s) lying on the lawn");
+            }
+            return any;
+        }
+
+        _heldOffSweep = false;
 
         try
         {

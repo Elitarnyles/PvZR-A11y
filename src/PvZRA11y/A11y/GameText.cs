@@ -51,6 +51,13 @@ public static class GameText
         if (Cache.TryGetValue(id, out string cached)) return cached;
 
         string result = Translate(id);
+
+        // Every id in this game's table carries a leading dollar, and the game hands ids out
+        // both ways. Three callers had grown their own retry and the rest had not, so the
+        // ones that had not simply went quiet - which is how the Vase Breaker tutorial line
+        // was lost. One retry here serves all of them.
+        if (result == null && id.Length > 0 && id[0] != '$') result = Translate("$" + id);
+
         Cache[id] = result;
 
         if (Config.Settings.VerboseLogging.Value)
