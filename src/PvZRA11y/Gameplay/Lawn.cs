@@ -393,6 +393,10 @@ public static class Lawn
     /// </summary>
     private static bool FinishConversation(CrazyDaveState state)
     {
+        // A mini-game conversation is not an offer of anything and must not be closed by
+        // sending Dave away: doing that skips the line that lays out the next stage.
+        if (AdvanceChallengeDialog()) return true;
+
         CutScene scene = null;
         try { scene = _board?.mCutScene; } catch { /* fall through to the old route */ }
 
@@ -463,8 +467,66 @@ public static class Lawn
     /// scene would have done at the end — which is the only remaining explanation for a
     /// player being told "It'll cost you $750" and then never being asked.
     /// </summary>
+    /// <summary>
+    /// True while Crazy Dave is between two stages of a Vase Breaker level.
+    ///
+    /// The game asks this before deciding what a click on the board means, and so must the
+    /// mod: the conversation looks like every other one and is not.
+    /// </summary>
+    public static bool ChallengeDaveTalking()
+    {
+        try { return _board != null && _board.IsScaryPotterDaveTalking(); }
+        catch { return false; }
+    }
+
+    /// <summary>
+    /// Advances Crazy Dave the way the mini-game needs, and reports whether it applied.
+    ///
+    /// Between the stages of a Vase Breaker level, the new vases are not laid out by the
+    /// level or by any timer. They are laid out by the third line of Dave's speech: when
+    /// his message index reaches 2702 or 2801, Challenge.AdvanceCrazyDaveDialog calls
+    /// ScaryPotterPopulate and PlaceRake. The mod was advancing him through the cut scene
+    /// instead, which moves the words along and calls neither - so Dave said his piece,
+    /// left, and the lawn stayed empty for the rest of the level with nothing to break and
+    /// no way to finish. Every square read "empty" and the mod looked broken, when in fact
+    /// it had walked the game past the step that fills the lawn.
+    /// </summary>
+    public static bool AdvanceChallengeDialog()
+    {
+        if (!ChallengeDaveTalking()) return false;
+
+        Challenge challenge = null;
+        try { challenge = _board.mChallenge; } catch { }
+        if (challenge == null) return false;
+
+        int before = DaveMessageIndex();
+
+        try
+        {
+            challenge.AdvanceCrazyDaveDialog();
+        }
+        catch (Exception ex)
+        {
+            Core.Log.Warning($"[dialogue] the challenge would not advance Dave: {ex.Message}");
+            return false;
+        }
+
+        Core.Log.Msg($"[dialogue] advanced the mini-game conversation, message {before} -> {DaveMessageIndex()}");
+        return true;
+    }
+
+    /// <summary>Which line of Dave's script is showing, or -1.</summary>
+    public static int DaveMessageIndex()
+    {
+        try { return _app == null ? -1 : _app.CrazyDaveMessageIndex; }
+        catch { return -1; }
+    }
+
     public static bool ClickBubble()
     {
+        // The mini-game's own route first: it is the one that lays out the next stage.
+        if (AdvanceChallengeDialog()) return true;
+
         CutScene scene = null;
         try { scene = _board?.mCutScene; } catch { return false; }
         if (scene == null) return false;

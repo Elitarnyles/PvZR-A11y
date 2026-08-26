@@ -134,7 +134,9 @@ public static class Dialogue
             string state = Lawn.DaveState();
             string panels = PanelScope.ShownPanelIds();
             int controls = Focus.CollectVisible().Count;
-            trace = $"dave={state} controls={controls} panels=[{panels}]";
+            trace = $"dave={state} message={Lawn.DaveMessageIndex()}"
+                  + $" challengeTalking={Lawn.ChallengeDaveTalking()}"
+                  + $" controls={controls} panels=[{panels}]";
         }
         catch (Exception ex)
         {

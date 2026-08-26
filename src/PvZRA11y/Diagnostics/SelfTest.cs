@@ -137,6 +137,8 @@ public static class SelfTest
         sb.AppendLine($"  fog             : {board.StageHasFog()}");
         sb.AppendLine($"  gravestones     : {board.StageHasGraveStones()}");
         sb.AppendLine($"  vase breaker    : {Gameplay.Lawn.IsVaseBreakerLevel}");
+        sb.AppendLine($"  dave talking    : {Gameplay.Lawn.ChallengeDaveTalking()},"
+                      + $" message {Gameplay.Lawn.DaveMessageIndex()}");
         sb.AppendLine($"  whack a zombie  : {Gameplay.Lawn.IsWhackAZombieLevel}");
 
         // What is lying on the lawn, because a plant out of a vase is a thing with no sound
