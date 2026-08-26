@@ -815,7 +815,7 @@ public static class Lawn
     private static string PickupOn(int x, int y)
     {
         Pickup? pickup = PickupAt(x, y);
-        return pickup == null ? null : Strings.T("pickup.lying", PlantName(pickup.Value.Type));
+        return pickup == null ? null : Strings.T("pickup.lying", pickup.Value.Label);
     }
 
     /// <summary>The plant or obstacle occupying a square, or null when it is bare.</summary>
@@ -1028,8 +1028,17 @@ public static class Lawn
     /// at all. The original PvZ accessibility mod puts this on the same key, so anyone
     /// arriving from it already has the habit.
     /// </summary>
-    /// <summary>One plant lying on the lawn, waiting to be picked up.</summary>
-    public readonly record struct Pickup(SeedType Type, int Row, int Column, float X, float Y);
+    /// <summary>
+    /// What a collectable on the lawn turns into when taken.
+    ///
+    /// A plant goes into your hand and has to be put down somewhere; a reward goes straight
+    /// into what you own and needs no square. The two need different confirmation, and the
+    /// auto-collector may sweep a reward but must not sweep a plant out from under you.
+    /// </summary>
+    public enum PickupKind { Plant, Reward }
+
+    /// <summary>One thing lying on the lawn, waiting to be picked up.</summary>
+    public readonly record struct Pickup(PickupKind Kind, string Label, int Row, int Column, float X, float Y);
 
     /// <summary>
     /// The plants lying on the ground, in reading order.
@@ -1061,7 +1070,16 @@ public static class Lawn
                     if (coin == null || coin.mDead || coin.mIsBeingCollected) continue;
 
                     CoinType type = coin.mType;
-                    if (type != CoinType.UsableSeedPacket && type != CoinType.PresentPlant) continue;
+
+                    PickupKind kind;
+                    switch (type)
+                    {
+                        case CoinType.UsableSeedPacket: kind = PickupKind.Plant; break;
+                        case CoinType.FinalSeedPacket:
+                        case CoinType.PresentPlant:
+                        case CoinType.AwardPresent:     kind = PickupKind.Reward; break;
+                        default: continue;
+                    }
 
                     // The middle of the box the game itself would test a click against.
                     // A coin's own position is the corner of its picture, so clicking there
@@ -1079,13 +1097,8 @@ public static class Lawn
                     }
                     catch { /* the corner will have to do */ }
 
-                    // What the packet finally turns into, which is not always what it says
-                    // it holds — a present sorts out its plant when asked.
-                    SeedType seed;
-                    try { seed = coin.GetFinalSeedPacketType(); }
-                    catch { seed = coin.mUsableSeedType; }
-
-                    found.Add(new Pickup(seed, RowAt(x, y), ColumnAt(x, y), x, y));
+                    found.Add(new Pickup(kind, PickupLabel(coin, type, kind),
+                                         RowAt(x, y), ColumnAt(x, y), x, y));
                 }
                 catch { /* one bad entry must not cost the rest */ }
             }
@@ -1140,6 +1153,35 @@ public static class Lawn
         return now is null or CursorType.Normal;
     }
 
+    /// <summary>
+    /// What to call a collectable lying on the lawn.
+    ///
+    /// A plant out of a vase carries its own kind in mUsableSeedType, which is the field the
+    /// game itself writes when the vase opens. GetFinalSeedPacketType looks like it would
+    /// answer the same question and does not: it returns the plant you are AWARDED for
+    /// finishing this level, ignoring the coin entirely. Reading it made every vase plant on
+    /// level 4-5 announce itself as a Split Pea - the prize for the level - while planting
+    /// the same packet produced the right plant, because that path never asked the coin.
+    /// </summary>
+    private static string PickupLabel(Coin coin, CoinType type, PickupKind kind)
+    {
+        try
+        {
+            if (kind == PickupKind.Plant) return PlantName(coin.mUsableSeedType);
+
+            // The one place the award seed type belongs: the packet the level hands you at
+            // the end, which is exactly what that method reports.
+            if (type == CoinType.FinalSeedPacket)
+            {
+                SeedType won = coin.GetFinalSeedPacketType();
+                if (won != SeedType.None) return Strings.T("pickup.won", PlantName(won));
+            }
+        }
+        catch { /* fall through to the plain word */ }
+
+        return Strings.T("pickup.present");
+    }
+
     /// <summary>Picks one up, by clicking it the way a mouse would.</summary>
     public static bool TakePickup(Pickup pickup)
     {
@@ -1154,7 +1196,7 @@ public static class Lawn
             int px = (int)Math.Round(pickup.X);
             int py = (int)Math.Round(pickup.Y);
 
-            Core.Log.Msg($"[lawn] taking {pickup.Type} at pixel {px},{py}" +
+            Core.Log.Msg($"[lawn] taking {pickup.Kind} \"{pickup.Label}\" at pixel {px},{py}" +
                          $" (row {pickup.Row + 1}, column {pickup.Column + 1})");
 
             _board.MouseDown(px, py, 1, Player);
@@ -1163,7 +1205,7 @@ public static class Lawn
         }
         catch (Exception ex)
         {
-            Core.Log.Warning($"Could not pick up {pickup.Type}: {ex.Message}");
+            Core.Log.Warning($"Could not pick up {pickup.Label}: {ex.Message}");
             return false;
         }
     }
@@ -1543,13 +1585,18 @@ public static class Lawn
         // A plant lying on the lawn is a collectable like any other, and the sweep would take
         // it before the player ever reached it - silently, and with no way to get it back.
         // Sun keeps being swept; only the item pass waits.
-        var lying = Pickups();
-        if (lying.Count > 0)
+        int plants = 0;
+        foreach (Pickup p in Pickups())
+            if (p.Kind == PickupKind.Plant) plants++;
+
+        // Only a plant stops the sweep. A reward taken automatically is a kindness; a plant
+        // taken automatically lands in your hand unannounced and blocks everything else.
+        if (plants > 0)
         {
             if (!_heldOffSweep)
             {
                 _heldOffSweep = true;
-                Core.Log.Msg($"[lawn] holding off the item sweep; {lying.Count} plant(s) lying on the lawn");
+                Core.Log.Msg($"[lawn] holding off the item sweep; {plants} plant(s) lying on the lawn");
             }
             return any;
         }

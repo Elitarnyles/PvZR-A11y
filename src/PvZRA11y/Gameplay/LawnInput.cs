@@ -63,7 +63,7 @@ public static class LawnInput
         // so the test never once came out true on the level it was written for.
         var lying = new List<string>();
         foreach (Lawn.Pickup p in Lawn.Pickups())
-            lying.Add(Strings.T("pickup.at", Lawn.PlantName(p.Type), p.Row + 1, p.Column + 1));
+            lying.Add(Strings.T("pickup.at", p.Label, p.Row + 1, p.Column + 1));
 
         string bank = Seeds.DescribeBank();
 
@@ -314,6 +314,14 @@ public static class LawnInput
             return;
         }
 
+        // A reward never reaches the cursor - it goes straight into what you own - so there
+        // is nothing to wait for and waiting would report a false failure.
+        if (taken.Kind != Lawn.PickupKind.Plant)
+        {
+            AnnounceTaken(taken);
+            return;
+        }
+
         if (Lawn.HeldSeed() != Il2CppReloaded.Gameplay.SeedType.None)
         {
             AnnounceTaken(taken);
@@ -326,8 +334,7 @@ public static class LawnInput
     }
 
     private static void AnnounceTaken(Lawn.Pickup taken) =>
-        Speech.Say(Strings.T("pickup.took", Lawn.PlantName(taken.Type),
-                             taken.Row + 1, taken.Column + 1),
+        Speech.Say(Strings.T("pickup.took", taken.Label, taken.Row + 1, taken.Column + 1),
                    interrupt: true, context: "pickup", allowRepeat: true);
 
     private static int _lastPickupCount = -1;
@@ -366,7 +373,7 @@ public static class LawnInput
         if (++_pendingPickupFrames < PickupVerifyFrames) return;
 
         _pendingPickup = null;
-        Core.Log.Warning($"[lawn] clicked {taken.Type} at row {taken.Row + 1}," +
+        Core.Log.Warning($"[lawn] clicked \"{taken.Label}\" at row {taken.Row + 1}," +
                          $" column {taken.Column + 1} but nothing reached the cursor" +
                          $" within {PickupVerifyFrames} frames");
         Speech.Say(Strings.T("pickup.cannot_take"), context: "pickup");

@@ -145,7 +145,7 @@ public static class SelfTest
         var lying = Gameplay.Lawn.Pickups();
         sb.AppendLine($"  lying on lawn   : {lying.Count}");
         foreach (Gameplay.Lawn.Pickup p in lying)
-            sb.AppendLine($"      {Gameplay.Lawn.PlantName(p.Type)} at row {p.Row + 1}, column {p.Column + 1}"
+            sb.AppendLine($"      [{p.Kind}] {p.Label} at row {p.Row + 1}, column {p.Column + 1}"
                           + $" (pixel {p.X:0},{p.Y:0})");
         sb.AppendLine($"  sun             : {Lawn.SunCount()}");
 

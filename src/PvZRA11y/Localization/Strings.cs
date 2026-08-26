@@ -106,6 +106,8 @@ public static class Strings
         ["lawn.item.ScaryPot"] = "vase",
         ["lawn.broke"] = "Broke the {0}",
         ["pickup.lying"] = "{0} to pick up",
+        ["pickup.present"] = "present",
+        ["pickup.won"] = "{0}, the plant you won",
         ["pickup.on_the_lawn"] = "On the lawn: {0}",
         ["vase.plant"] = "vase with {0}",
         ["vase.zombie"] = "vase with a {0}",
