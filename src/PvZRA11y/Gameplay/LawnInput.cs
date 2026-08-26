@@ -507,8 +507,14 @@ public static class LawnInput
 
         // Back to the plant you were holding. Digging is something you do in the middle of
         // planting, and having to find your plant again afterwards is a tax on every use.
-        if (heldBefore >= 0 && Seeds.SelectedIndex() != heldBefore)
-            Seeds.Select(heldBefore);
+        // It can legitimately fail - the plant may have become unaffordable while you dug -
+        // and then it is worth a word, because otherwise the next key press plants nothing
+        // and says nothing.
+        if (heldBefore >= 0 && Seeds.SelectedIndex() != heldBefore && !Seeds.Select(heldBefore))
+        {
+            Core.Log.Msg($"[lawn] could not put slot {heldBefore + 1} back in hand after digging");
+            Speech.Say(Strings.T("seeds.nothing_held"), interrupt: false, context: "shovel");
+        }
 
         if (!dug)
         {

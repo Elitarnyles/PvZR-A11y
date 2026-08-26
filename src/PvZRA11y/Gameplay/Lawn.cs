@@ -1190,11 +1190,14 @@ public static class Lawn
     {
         if (_board == null) return false;
 
+        // Only a plant is handed back. A tool in the cursor is a different thing entirely:
+        // in Whack a Zombie the game holds the mallet for the whole level, and clearing it
+        // would take the player's only weapon away for good.
         CursorType? held = CursorKind();
-        if (held is null or CursorType.Normal)
+        if (HeldSeed() == SeedType.None)
         {
             Seeds.ClearSelection();
-            return true;
+            return held is null or CursorType.Normal;
         }
 
         try { _board.RefreshSeedPacketFromCursor(Player, false); }
@@ -1211,7 +1214,7 @@ public static class Lawn
         }
 
         CursorType? now = CursorKind();
-        Core.Log.Msg($"[lawn] hand emptied for a pickup: {held} -> {now?.ToString() ?? "none"}");
+        Core.Log.Msg($"[lawn] plant handed back: {held} -> {now?.ToString() ?? "none"}");
         return now is null or CursorType.Normal;
     }
 
@@ -1559,6 +1562,10 @@ public static class Lawn
             }
             else
             {
+                // Same trap as the shovel: reaching for a tool while a seed packet is
+                // marked as taken out of the bank strands that packet for the level.
+                // ReleaseCursor leaves a mallet alone and only hands a plant back.
+                ReleaseCursor();
                 _board.MouseDownWithTool(px, py, 1, CursorType.Hammer, Player);
                 _board.MouseUp(px, py, 1, Player);
             }
@@ -1592,6 +1599,17 @@ public static class Lawn
             Core.Log.Warning($"[lawn] no pixel position maps back to square {x},{y}; not digging");
             return false;
         }
+
+        // The plant in hand has to go back first, and go back the game's own way.
+        //
+        // The game never lets these two states meet: with a plant in the cursor its click
+        // handler goes to "try to plant here" and never reaches the branch that picks a tool
+        // up, so a sighted player must drop the plant before taking the shovel. The mod
+        // called for the tool directly and skipped that, which overwrote the cursor while
+        // the seed packet was still marked as taken out of the bank. Taking a packet
+        // deactivates it, and only putting it back activates it again - so that one plant
+        // stayed dead for the rest of the level while every other slot kept working.
+        ReleaseCursor();
 
         try
         {
