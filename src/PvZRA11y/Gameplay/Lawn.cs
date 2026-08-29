@@ -1827,9 +1827,25 @@ public static class Lawn
             int best = 0;
             float bestDistance = float.MaxValue;
 
+            // Nearest row, measured with the game's own GetPosYBasedOnRow.
+            //
+            // Two things had to be right at once. A zombie's position is the top of a sprite
+            // two squares tall and sits some thirty pixels above its row, so the game's
+            // PixelToGridY - which puts a point in a band - rounds it into the row above;
+            // nearest-row is the only reading that survives that. And on a roof the height of
+            // a row depends on how far along the lawn you are, because the roof slopes, so
+            // measuring every row at column zero put a zombie on the sloped half a whole row
+            // out. GetPosYBasedOnRow answers exactly that question - where is row N at this
+            // horizontal position - smoothly rather than in twenty-pixel steps per column,
+            // which is how the zombie actually walks down it. On a flat lawn it is the old
+            // GridToPixelY(0, row) unchanged.
             for (int row = 0; row < rows; row++)
             {
-                float distance = Math.Abs(_board.GridToPixelY(0, row) - y);
+                float rowY;
+                try { rowY = _board.GetPosYBasedOnRow(x, row); }
+                catch { rowY = _board.GridToPixelY(0, row); }
+
+                float distance = Math.Abs(rowY - y);
                 if (distance >= bestDistance) continue;
                 bestDistance = distance;
                 best = row;

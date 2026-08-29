@@ -309,12 +309,26 @@ public static class SelfTest
             ambiguous == 0 ? "all of them" : $"{ambiguous} sitting between two rows");
     }
 
+    /// <summary>
+    /// Where a row sits at a given horizontal position, the way the game itself works it out.
+    ///
+    /// Measuring at column zero is only right on a flat lawn. A roof slopes, so the same row
+    /// is up to a hundred pixels higher at the house end than at the far end, and a check
+    /// that ignores that reports every zombie on the sloped half as a row out when it is not,
+    /// or agrees with a reading that is.
+    /// </summary>
+    private static float RowHeight(Board board, float x, int row)
+    {
+        try { return board.GetPosYBasedOnRow(x, row); }
+        catch { return board.GridToPixelY(0, row); }
+    }
+
     /// <summary>How far a zombie is from its row, and from the next nearest, for the dump.</summary>
     private static string RowMargin(Board board, Zombie zombie, int row)
     {
         try
         {
-            float own = Math.Abs(board.GridToPixelY(0, row) - zombie.mPosY);
+            float own = Math.Abs(RowHeight(board, zombie.mPosX, row) - zombie.mPosY);
             float next = NextNearestDistance(board, zombie, row);
             return $"  offBy={own:F0} vs {next:F0}";
         }
@@ -325,7 +339,7 @@ public static class SelfTest
     {
         try
         {
-            float own = Math.Abs(board.GridToPixelY(0, row) - zombie.mPosY);
+            float own = Math.Abs(RowHeight(board, zombie.mPosX, row) - zombie.mPosY);
             float next = NextNearestDistance(board, zombie, row);
             // Comfortably nearer its own row means less than half the gap to the next one.
             return next <= 0f || own > next * 0.5f;
@@ -340,7 +354,7 @@ public static class SelfTest
         for (int other = 0; other < rows; other++)
         {
             if (other == row) continue;
-            float distance = Math.Abs(board.GridToPixelY(0, other) - zombie.mPosY);
+            float distance = Math.Abs(RowHeight(board, zombie.mPosX, other) - zombie.mPosY);
             if (distance < best) best = distance;
         }
         return best == float.MaxValue ? 0f : best;
