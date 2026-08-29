@@ -643,7 +643,7 @@ public static class Garden
     /// Shop to the secondary face button and to nothing else, so that is what the mod presses.
     /// </summary>
     public static bool OpenStore() =>
-        Input.VirtualPad.Press(UnityEngine.InputSystem.LowLevel.GamepadButton.West);
+        Input.VirtualPad.PressThenHandBack(UnityEngine.InputSystem.LowLevel.GamepadButton.West);
 
     /// <summary>
     /// Leaves the garden, by pressing the button the game listens for.
@@ -654,11 +654,11 @@ public static class Garden
     /// controller binding with no handler in the code to call instead.
     /// </summary>
     public static bool Leave() =>
-        Input.VirtualPad.Press(UnityEngine.InputSystem.LowLevel.GamepadButton.East);
+        Input.VirtualPad.PressThenHandBack(UnityEngine.InputSystem.LowLevel.GamepadButton.East);
 
     /// <summary>Moves to the next garden the way the game does, through its own button.</summary>
     public static bool NextGardenByPad() =>
-        Input.VirtualPad.Press(UnityEngine.InputSystem.LowLevel.GamepadButton.North);
+        Input.VirtualPad.PressThenHandBack(UnityEngine.InputSystem.LowLevel.GamepadButton.North);
 
     /// <summary>
     /// Clicks a pot with whatever is already in hand.

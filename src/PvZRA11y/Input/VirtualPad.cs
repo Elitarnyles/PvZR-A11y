@@ -126,15 +126,80 @@ public static class VirtualPad
         }
     }
 
+    /// <summary>
+    /// Hands the game back to the keyboard and mouse.
+    ///
+    /// Pressing a controller button does not only press a button: the game decides a
+    /// controller is in use and rebuilds the screen for one. In the shop that means the item
+    /// tiles stop being controls of their own and become the innards of two grid containers
+    /// that steer themselves - so the shop opens correctly and then reads as empty, because
+    /// there is genuinely nothing left on it to walk to.
+    ///
+    /// The scheme follows whichever device spoke last, so the mod says something with the
+    /// mouse. One pixel out and back is the smallest thing that counts as having been used,
+    /// and it lands on a screen where the pointer means nothing anyway.
+    /// </summary>
+    public static bool HandBackToKeyboard()
+    {
+        Mouse mouse;
+        try { mouse = Mouse.current; }
+        catch { return false; }
+        if (mouse == null) return false;
+
+        try
+        {
+            UnityEngine.Vector2 at = mouse.position.ReadValue();
+
+            InputSystem.QueueStateEvent(mouse, new MouseState { position = at + new UnityEngine.Vector2(1f, 0f) }, -1.0);
+            InputSystem.Update();
+
+            InputSystem.QueueStateEvent(mouse, new MouseState { position = at }, -1.0);
+            InputSystem.Update();
+
+            Core.Log.Msg($"[pad] handed the controls back; the game now thinks they are {ControlType()}");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Core.Log.Warning($"[pad] could not hand the controls back: {ex.Message}");
+            return false;
+        }
+    }
+
     /// <summary>Takes the device away again, once the game has had time to react.</summary>
     public static void Tick()
     {
+        if (_handBackIn > 0 && --_handBackIn == 0) HandBackToKeyboard();
+
         if (_removeIn < 0) return;
         if (--_removeIn > 0) return;
 
         _removeIn = -1;
         Remove();
     }
+
+    private static int _handBackIn;
+
+    /// <summary>
+    /// Presses a button and then gives the controls straight back.
+    ///
+    /// For the presses that open a screen. The button has to arrive as a controller or the
+    /// game will not act on it at all, but the screen it opens has to be built for a keyboard
+    /// or there will be nothing on it to read.
+    /// </summary>
+    public static bool PressThenHandBack(GamepadButton button)
+    {
+        if (!Press(button)) return false;
+
+        // After the press has landed and the screen has had time to come up. Handing the
+        // controls back in the same frame would arrive before the screen was built and the
+        // game would build it for a controller anyway.
+        _handBackIn = HandBackAfterFrames;
+        return true;
+    }
+
+    /// <summary>Long enough for the screen the press opened to exist.</summary>
+    private const int HandBackAfterFrames = 6;
 
     private static void Remove()
     {

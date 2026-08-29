@@ -478,10 +478,18 @@ public static class GardenInput
     /// dump tells those apart, and guessing between them has already cost this mod several
     /// rounds today.
     /// </summary>
+    private static int _storeDumpIn;
+
     private static void TickStoreDump()
     {
         if (_dumpedStore) return;
-        if (UI.PanelScope.FrontPanelId != "store") return;
+
+        if (UI.PanelScope.FrontPanelId != "store") { _storeDumpIn = 0; return; }
+
+        // Late on purpose. The controls are handed back to the keyboard a few frames after the
+        // shop opens, and the screen is rebuilt when that happens - so a dump taken the moment
+        // the panel appears describes the state we are trying to get out of.
+        if (++_storeDumpIn < 30) return;
 
         _dumpedStore = true;
         Core.Log.Msg($"[garden] writing out the shop opened from the garden;" +
@@ -540,6 +548,7 @@ public static class GardenInput
             _pendingTool = null;
             _dumpedHud = false;
             _dumpedStore = false;
+            _storeDumpIn = 0;
             return;
         }
 
