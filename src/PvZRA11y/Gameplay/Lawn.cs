@@ -393,8 +393,10 @@ public static class Lawn
     /// </summary>
     private static bool FinishConversation(CrazyDaveState state)
     {
-        // A mini-game conversation is not an offer of anything and must not be closed by
-        // sending Dave away: doing that skips the line that lays out the next stage.
+        // A mini-game or garden conversation is not an offer of anything and must not be
+        // closed by sending Dave away: doing that skips the line that lays out the next stage,
+        // or the one that hands over your first two plants.
+        if (Garden.AdvanceDialog()) return true;
         if (AdvanceChallengeDialog()) return true;
 
         CutScene scene = null;
@@ -524,7 +526,9 @@ public static class Lawn
 
     public static bool ClickBubble()
     {
-        // The mini-game's own route first: it is the one that lays out the next stage.
+        // Each screen that owns a conversation owns its own way of advancing it, and each of
+        // those does something the cut scene's does not. Ask them before falling back.
+        if (Garden.AdvanceDialog()) return true;
         if (AdvanceChallengeDialog()) return true;
 
         CutScene scene = null;

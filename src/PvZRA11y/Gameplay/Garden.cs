@@ -510,6 +510,44 @@ public static class Garden
         }
     }
 
+    /// <summary>
+    /// Advances Crazy Dave the way the garden needs, and reports whether it applied.
+    ///
+    /// The two marigolds you are given on your first visit are not handed over by the level
+    /// or by arriving in the garden. They are handed over by one line of Dave's speech:
+    /// ZenGarden.AdvanceCrazyDaveDialog advances his text and then, when his message index
+    /// reaches 2102, builds two potted plants and adds them. Advancing him any other way says
+    /// the same words and creates nothing, which leaves a first-time player standing in an
+    /// empty greenhouse with no way to get the plants back.
+    ///
+    /// This is the third method of that name in the game. The cut scene's moves only words;
+    /// the challenge's also lays out the next Vase Breaker stage; this one also gives plants.
+    /// The mod has now been caught by two of the three.
+    ///
+    /// Safe to call when he is not talking: the game's own first test is whether there is a
+    /// message at all, and it returns without doing anything when there is not.
+    /// </summary>
+    public static bool AdvanceDialog()
+    {
+        if (!IsActive) return false;
+
+        ZenGarden zen = Zen();
+        if (zen == null) return false;
+
+        int before = Lawn.DaveMessageIndex();
+        if (before < 0) return false;
+
+        try { zen.AdvanceCrazyDaveDialog(); }
+        catch (Exception ex)
+        {
+            Core.Log.Warning($"[garden] the garden would not advance Dave: {ex.Message}");
+            return false;
+        }
+
+        Core.Log.Msg($"[garden] advanced the garden conversation, message {before} -> {Lawn.DaveMessageIndex()}");
+        return true;
+    }
+
     /// <summary>Moves on to the next garden, and says which one arrived.</summary>
     public static bool NextGarden()
     {
