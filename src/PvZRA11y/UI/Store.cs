@@ -343,6 +343,17 @@ public static class Store
     /// where the gameplay activity may not exist and this mod has been caught before
     /// assuming one path is the path.
     /// </summary>
+    /// <summary>
+    /// The game counts money in units of ten and only multiplies when it draws the number.
+    ///
+    /// So the figure the player sees on the shop's counter is ten times the one the save file
+    /// holds, and the mod had been reading the save file's. It said 805 while the shop said
+    /// 8,050 - a tenth of the truth, on the one number a player uses to decide whether he can
+    /// afford something. Measured against the game's own GetMoneyString, whose first act is
+    /// to multiply by ten.
+    /// </summary>
+    private const int CoinsPerUnit = 10;
+
     public static int? CoinCount()
     {
         // 1. The service that owns the number.
@@ -351,8 +362,9 @@ public static class Store
             var user = Lawn.UserServiceRef();
             if (user != null)
             {
-                int coins = user.GetCoins();
-                if (Settings.VerboseLogging.Value) Core.Log.Msg($"[store] coins from the user service: {coins}");
+                int coins = user.GetCoins() * CoinsPerUnit;
+                if (Settings.VerboseLogging.Value)
+                    Core.Log.Msg($"[store] coins from the user service: {user.GetCoins()} units, {coins} spent");
                 return coins;
             }
         }
@@ -370,7 +382,7 @@ public static class Store
             if (int.TryParse(Digits(value), NumberStyles.Any, CultureInfo.InvariantCulture, out int coins))
             {
                 if (Settings.VerboseLogging.Value) Core.Log.Msg($"[store] coins from \"{key}\": {coins}");
-                return coins;
+                return coins * CoinsPerUnit;
             }
         }
 

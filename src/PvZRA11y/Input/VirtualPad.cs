@@ -63,7 +63,8 @@ public static class VirtualPad
             InputSystem.Update();
 
             _removeIn = KeepForFrames;
-            Core.Log.Msg($"[pad] pressed {button} on the virtual controller");
+            Core.Log.Msg($"[pad] pressed {button} on the virtual controller;" +
+                         $" the game now thinks the controls are {ControlType()}");
             return true;
         }
         catch (Exception ex)
@@ -72,6 +73,24 @@ public static class VirtualPad
             Remove();
             return false;
         }
+    }
+
+    /// <summary>
+    /// Which controls the game believes are in use.
+    ///
+    /// Worth logging around every press. A game that has just seen a controller may rebuild a
+    /// screen for one - different navigation, different prompts, sometimes controls that are
+    /// no longer individually selectable - and that would look from outside like a screen
+    /// that came up empty.
+    /// </summary>
+    public static string ControlType()
+    {
+        try
+        {
+            var service = Gameplay.Lawn.AppRef?.InputService;
+            return service == null ? "unknown" : service.CurrentControlType.ToString();
+        }
+        catch { return "unknown"; }
     }
 
     private static bool Ensure()

@@ -467,6 +467,30 @@ public static class GardenInput
     /// So the dump goes in by itself rather than waiting for someone who cannot see the
     /// screen to think of pressing a diagnostic key at the right moment.
     /// </summary>
+    private static bool _dumpedStore;
+
+    /// <summary>
+    /// Writes out the shop the first time it opens from the garden.
+    ///
+    /// It comes up empty, and there are two quite different reasons it could: either the item
+    /// tiles are not there yet, or they are there and no longer reachable because the game
+    /// rebuilt the screen for a controller the moment the mod pretended to plug one in. The
+    /// dump tells those apart, and guessing between them has already cost this mod several
+    /// rounds today.
+    /// </summary>
+    private static void TickStoreDump()
+    {
+        if (_dumpedStore) return;
+        if (UI.PanelScope.FrontPanelId != "store") return;
+
+        _dumpedStore = true;
+        Core.Log.Msg($"[garden] writing out the shop opened from the garden;" +
+                     $" controls are {Input.VirtualPad.ControlType()}");
+
+        try { Diagnostics.Probe.DumpCurrentScreen(); }
+        catch (Exception ex) { Core.Log.Warning($"[garden] could not dump the shop: {ex.Message}"); }
+    }
+
     private static void TickHudDump()
     {
         if (_dumpedHud) return;
@@ -515,11 +539,13 @@ public static class GardenInput
             _toolsFor = (GardenType)(-1);
             _pendingTool = null;
             _dumpedHud = false;
+            _dumpedStore = false;
             return;
         }
 
         TickReport();
         TickHudDump();
+        TickStoreDump();
 
         foreach (Garden.Slot slot in Garden.Slots())
         {
