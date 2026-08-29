@@ -175,7 +175,7 @@ public static class Strings
         ["garden.placed"] = "Put the {0} down, {1}",
         ["garden.still_holding"] = "Still holding the {0}",
         ["garden.cannot_place"] = "Cannot put the {0} there.",
-        ["garden.no_shop"] = "The shop is not open from here.",
+        ["garden.no_shop"] = "The garden has no shop of its own. Buy fertilizer and the rest from the shop on the main menu.",
         ["garden.cannot_leave"] = "Cannot leave the garden from here.",
         ["garden.no_stinky"] = "You do not have Stinky the snail.",
         ["garden.stinky_awake"] = "Stinky is already awake.",

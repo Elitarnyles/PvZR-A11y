@@ -631,58 +631,41 @@ public static class Garden
     }
 
     /// <summary>
-    /// Opens Crazy Dave's shop from the garden.
+    /// Whether the garden's own shop can be opened. It cannot, in this version of the game.
     ///
-    /// Asked first, then done. ZenGarden.OpenStore leaves the garden as its first act and
-    /// then reaches for a store screen it assumes it will be given - so when the game is not
-    /// willing to show one it throws halfway through, having already torn the garden down.
-    /// The activity answers whether it is willing, and that question costs nothing.
+    /// ZenGarden.OpenStore is left over from the 2009 architecture and no longer works:
+    /// it tears the garden down as its first act, then reaches for a store screen built out
+    /// of the old board widgets, which the remaster never creates. GameplayActivity.CanShowStore
+    /// answers True the whole time, so it is not a matter of asking at the right moment - the
+    /// method simply runs into nothing and throws, having already done its damage.
+    ///
+    /// The shop reached from the main menu carries the same stock: the game's own text calls
+    /// it "the Zen Garden section of my shop". So there is nothing lost, and the mod says
+    /// where to go rather than half-executing a call that breaks the garden.
     /// </summary>
-    public static bool OpenStore()
-    {
-        ZenGarden zen = Zen();
-        Il2CppReloaded.TreeStateActivities.GameplayActivity app = Lawn.AppRef;
-        if (zen == null || app == null) return false;
+    public static bool OpenStore() => false;
 
-        bool willing;
-        try { willing = app.CanShowStore(); }
-        catch (Exception ex)
-        {
-            Core.Log.Warning($"[garden] could not ask about the shop: {ex.Message}");
-            return false;
-        }
-
-        if (!willing)
-        {
-            Core.Log.Msg("[garden] the game will not show the shop right now");
-            return false;
-        }
-
-        try { zen.OpenStore(); }
-        catch (Exception ex)
-        {
-            Core.Log.Warning($"[garden] could not open the shop: {ex.Message}");
-            return false;
-        }
-
-        Core.Log.Msg("[garden] opened the shop");
-        return true;
-    }
-
-    /// <summary>Leaves the garden altogether.</summary>
+    /// <summary>
+    /// Leaves the garden, through the handler behind the game's own Back prompt.
+    ///
+    /// Not ZenGarden.LeaveGarden, which sounds like the way out and is not: it is the tidying
+    /// up that happens after the decision has been made elsewhere, so calling it on its own
+    /// dismantles the garden without going anywhere. The activity's menu-button handler is
+    /// the real thing, and it never looks at the button it is handed.
+    /// </summary>
     public static bool Leave()
     {
-        ZenGarden zen = Zen();
-        if (zen == null) return false;
+        Il2CppReloaded.TreeStateActivities.GameplayActivity app = Lawn.AppRef;
+        if (app == null) return false;
 
-        try { zen.LeaveGarden(); }
+        try { app._onMenuButtonActivated(null); }
         catch (Exception ex)
         {
             Core.Log.Warning($"[garden] could not leave: {ex.Message}");
             return false;
         }
 
-        Core.Log.Msg("[garden] asked to leave the garden");
+        Core.Log.Msg("[garden] pressed the way out");
         return true;
     }
 
