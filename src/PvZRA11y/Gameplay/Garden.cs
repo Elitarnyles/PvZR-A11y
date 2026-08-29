@@ -631,43 +631,34 @@ public static class Garden
     }
 
     /// <summary>
-    /// Whether the garden's own shop can be opened. It cannot, in this version of the game.
+    /// Opens the garden's shop, by pressing the button the game listens for.
     ///
-    /// ZenGarden.OpenStore is left over from the 2009 architecture and no longer works:
-    /// it tears the garden down as its first act, then reaches for a store screen built out
-    /// of the old board widgets, which the remaster never creates. GameplayActivity.CanShowStore
-    /// answers True the whole time, so it is not a matter of asking at the right moment - the
-    /// method simply runs into nothing and throws, having already done its damage.
+    /// There is no method to call. ZenGarden.OpenStore is left over from the 2009
+    /// architecture and reaches for a store screen the remaster never builds - its
+    /// GameplayActivity.ShowStoreScreen is a stub whose whole body returns nothing - so it
+    /// throws, and it does so after tearing the garden down. And the ZenGarden/Shop action
+    /// has no handler anywhere in the code: the wiring is in an interface prefab.
     ///
-    /// The shop reached from the main menu carries the same stock: the game's own text calls
-    /// it "the Zen Garden section of my shop". So there is nothing lost, and the mod says
-    /// where to go rather than half-executing a call that breaks the garden.
+    /// What the game does listen for is a controller. The action map for the garden binds
+    /// Shop to the secondary face button and to nothing else, so that is what the mod presses.
     /// </summary>
-    public static bool OpenStore() => false;
+    public static bool OpenStore() =>
+        Input.VirtualPad.Press(UnityEngine.InputSystem.LowLevel.GamepadButton.West);
 
     /// <summary>
-    /// Leaves the garden, through the handler behind the game's own Back prompt.
+    /// Leaves the garden, by pressing the button the game listens for.
     ///
     /// Not ZenGarden.LeaveGarden, which sounds like the way out and is not: it is the tidying
     /// up that happens after the decision has been made elsewhere, so calling it on its own
-    /// dismantles the garden without going anywhere. The activity's menu-button handler is
-    /// the real thing, and it never looks at the button it is handed.
+    /// dismantles the garden without going anywhere. Like the shop, the real Back is a
+    /// controller binding with no handler in the code to call instead.
     /// </summary>
-    public static bool Leave()
-    {
-        Il2CppReloaded.TreeStateActivities.GameplayActivity app = Lawn.AppRef;
-        if (app == null) return false;
+    public static bool Leave() =>
+        Input.VirtualPad.Press(UnityEngine.InputSystem.LowLevel.GamepadButton.East);
 
-        try { app._onMenuButtonActivated(null); }
-        catch (Exception ex)
-        {
-            Core.Log.Warning($"[garden] could not leave: {ex.Message}");
-            return false;
-        }
-
-        Core.Log.Msg("[garden] pressed the way out");
-        return true;
-    }
+    /// <summary>Moves to the next garden the way the game does, through its own button.</summary>
+    public static bool NextGardenByPad() =>
+        Input.VirtualPad.Press(UnityEngine.InputSystem.LowLevel.GamepadButton.North);
 
     /// <summary>
     /// Clicks a pot with whatever is already in hand.
@@ -744,11 +735,17 @@ public static class Garden
 
         GardenType before = Which();
 
-        try { zen.GotoNextGarden(); }
-        catch (Exception ex)
+        // The controller route first, because it is the one the game wired: it checks the
+        // garden really changed and plays the sound. Calling GotoNextGarden straight only
+        // moves the state.
+        if (!NextGardenByPad())
         {
-            Core.Log.Warning($"[garden] could not move to the next garden: {ex.Message}");
-            return false;
+            try { zen.GotoNextGarden(); }
+            catch (Exception ex)
+            {
+                Core.Log.Warning($"[garden] could not move to the next garden: {ex.Message}");
+                return false;
+            }
         }
 
         // The table belongs to the garden that has just gone.

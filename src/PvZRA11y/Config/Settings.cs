@@ -40,6 +40,7 @@ public static class Settings
     public static MelonPreferences_Entry<bool> AutoCollectSun;
     public static MelonPreferences_Entry<bool> AutoCollectItems;
     public static MelonPreferences_Entry<bool> SayCoinPickups;
+    public static MelonPreferences_Entry<bool> UseVirtualPad;
     public static MelonPreferences_Entry<bool> SayAlmanacHitPoints;
 
     // --- Navigation --------------------------------------------------------
@@ -110,6 +111,9 @@ public static class Settings
             description: "Also gather coins and the prizes a level drops when won - new seed packets, trophies, presents. These are easy to miss entirely.");
         SayAlmanacHitPoints = cat.CreateEntry("SayAlmanacHitPoints", false,
             description: "Read the hit-point figure hidden inside a zombie's toughness line in the almanac, as in \"Toughness: high, 1370 hit points\". Off by default, matching the original PvZ accessibility mod, which drops it.");
+
+        UseVirtualPad = cat.CreateEntry("UseVirtualPad", true,
+            description: "Let the mod press controller buttons the game listens to but has bound to no key. The Zen Garden needs this: its shop, its way out and its tool row answer only to a gamepad, so without it the garden tutorial cannot be finished on a keyboard. The device is added for the press and taken away again a moment later. Turn it off if the game starts drawing controller prompts or ignoring the keyboard.");
 
         SayCoinPickups = cat.CreateEntry("SayCoinPickups", false,
             description: "Announce coins as well as prizes. Off by default: coins are frequent and prizes are what you actually need to hear about.");

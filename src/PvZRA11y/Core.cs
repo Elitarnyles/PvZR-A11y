@@ -105,6 +105,7 @@ public class Core : MelonMod
         ("arrivals",     Patches.BoardPatch.FlushArrivals),
         ("lawn",         Gameplay.LawnInput.Update),
         ("garden",       Gameplay.GardenInput.Tick),
+        ("pad",          Input.VirtualPad.Tick),
         ("tripwire",     Gameplay.Sonar.TickTripwire),
         ("tones",        Tones.Pump),
         ("speech",       Speech.Pump),
