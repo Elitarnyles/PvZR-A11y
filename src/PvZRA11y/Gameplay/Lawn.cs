@@ -75,6 +75,11 @@ public static class Lawn
         // there underneath it.
         "dialog",
         "dialogZengarden",
+
+        // Crazy Dave's shop. It opens over a live board - over the lawn before the taco
+        // mini-game, and over the Zen Garden whenever you go shopping - so without this the
+        // arrow keys walk the lawn while the player is trying to buy something.
+        "store",
     };
 
     private static bool _lastHadInput = true;
@@ -186,6 +191,14 @@ public static class Lawn
             {
                 string front = UI.PanelScope.FrontPanelId;
                 if (front != null && BlockingPanels.Contains(front)) allowed = false;
+
+                // The shop again, by a second route. Asking only about the front panel is
+                // enough for a screen that stays on top, and the shop does not: Crazy Dave
+                // talks over it constantly, and each time he does the front panel becomes his
+                // and the lawn quietly took the keyboard back. The player was then walking a
+                // lawn cursor and hearing "leftmost column, next to the house" while standing
+                // in a shop.
+                if (allowed && Garden.InStore()) allowed = false;
             }
 
             if (allowed != _lastHadInput)
