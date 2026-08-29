@@ -63,6 +63,10 @@ public class Core : MelonMod
                 "F3 sun, F4 progress.");
         Log.Msg("Keys, almanac: arrows move between entries, Enter opens one, F4 reads it in full.");
         Log.Msg("Keys, Whack a Zombie: arrows move, Backspace swings the mallet.");
+        Log.Msg("Keys, Zen Garden: arrows move between pots, minus and equals and the digits "
+              + "choose a tool, Enter uses it on the pot you are standing on or moves to the "
+              + "next garden, F1 how many plants want something (twice: what is planted), "
+              + "F2 the full report of this pot, F3 coins, F4 Stinky, F6 reads the whole garden.");
         Log.Msg("Keys, Vase Breaker: arrows move, Enter takes the plant lying on your square or breaks the vase standing on it, F6 lists what is lying on the lawn, minus and equals step through it, and the digits carry on past the seed bank into it.");
         Log.Msg("Keys, shop: arrows and Tab move, Enter buys or moves Crazy Dave on, Backspace leaves, F1 says how many coins you have.");
         Log.Msg("Keys, anywhere: LeftCtrl silence, Ctrl+Alt+A toggle speech, F10 dump screen to log, F11 self-test.");
@@ -100,6 +104,7 @@ public class Core : MelonMod
         ("seed chooser", Gameplay.SeedChooser.Tick),
         ("arrivals",     Patches.BoardPatch.FlushArrivals),
         ("lawn",         Gameplay.LawnInput.Update),
+        ("garden",       Gameplay.GardenInput.Tick),
         ("tripwire",     Gameplay.Sonar.TickTripwire),
         ("tones",        Tones.Pump),
         ("speech",       Speech.Pump),

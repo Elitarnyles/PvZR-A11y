@@ -567,6 +567,9 @@ public static class Lawn
     /// The shop is opened from the menu, where there may be no board and so no gameplay
     /// activity, which is why this is allowed to answer null rather than assuming one path.
     /// </summary>
+    /// <summary>The activity running the level, or null. The way to everything the board does not own.</summary>
+    public static GameplayActivity AppRef => _app;
+
     public static Il2CppReloaded.Services.IUserService UserServiceRef()
     {
         try { var u = _app?.UserService; if (u != null) return u; }

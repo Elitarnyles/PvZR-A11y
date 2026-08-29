@@ -99,6 +99,12 @@ public static class Hotkeys
         // selection landing on one card as the screen opens and never moving again.
         if (SeedChooser.IsActive && HandleChooserMovement(kb)) return;
 
+        // Before the lawn, and ahead of everything else that reads a board: the Zen Garden
+        // runs on an ordinary board, so every "am I on the lawn" test answers yes there while
+        // the player is plainly not playing a level. The garden's own keys have to get first
+        // refusal or the lawn handlers would answer for them.
+        if (Garden.IsActive && Lawn.HasInput && HandleGarden(kb)) return;
+
         // On the lawn the arrow keys walk the grid. In menus, and while a dialog covers the
         // lawn, they belong to the game.
         if (Lawn.HasInput && HandleLawnMovement(kb)) return;
@@ -284,6 +290,64 @@ public static class Hotkeys
     /// Arrow keys on the lawn. Returns true once a direction was handled, so nothing further
     /// treats the same press as something else.
     /// </summary>
+    private static long _lastGardenSurveyAt = long.MinValue;
+
+    /// <summary>
+    /// Everything the keys mean inside the Zen Garden.
+    ///
+    /// The tool keys follow the original PvZ accessibility mod, at the player's request: the
+    /// cycle keys and the digits step through what you own, and the activate key uses it on
+    /// the pot you are standing on. The four question keys keep the meanings they have
+    /// everywhere else in this mod - survey, detail, money, and the one odd thing on this
+    /// screen - so nothing new has to be learned to walk in.
+    /// </summary>
+    private static bool HandleGarden(Keyboard kb)
+    {
+        if (Pressed(kb, Key.UpArrow)) return GardenInput.Move(0, -1);
+        if (Pressed(kb, Key.DownArrow)) return GardenInput.Move(0, 1);
+        if (Pressed(kb, Key.LeftArrow)) return GardenInput.Move(-1, 0);
+        if (Pressed(kb, Key.RightArrow)) return GardenInput.Move(1, 0);
+
+        if (Pressed(kb, _cycleLeft)) return GardenInput.CycleTool(-1);
+        if (Pressed(kb, _cycleRight)) return GardenInput.CycleTool(1);
+
+        for (int digit = 0; digit < 10; digit++)
+        {
+            Key key = digit == 0 ? Key.Digit0 : Key.Digit1 + (digit - 1);
+            if (!Pressed(kb, key)) continue;
+
+            // The game numbers a row of things one to ten with zero at the end, and the seed
+            // bank already works that way, so the tools do too.
+            return GardenInput.PickTool(digit == 0 ? 9 : digit - 1);
+        }
+
+        if (Pressed(kb, _activate)) return GardenInput.Use();
+
+        if (Pressed(kb, _info1))
+        {
+            // Twice quickly asks the wider question, exactly as it does on the lawn: the first
+            // press is "what needs me", the second is "what is here at all".
+            long now = Environment.TickCount64;
+            bool second = now - _lastGardenSurveyAt < DoubleTapMs;
+            _lastGardenSurveyAt = now;
+            return GardenInput.AnnounceSurvey(second);
+        }
+
+        if (Pressed(kb, _info2)) return GardenInput.AnnounceSlot();
+
+        // The garden's currency is coins, not sun, and F3 is already the money question in
+        // the shop.
+        if (Pressed(kb, _info3)) { Store.AnnounceCoins(); return true; }
+
+        if (Pressed(kb, _info4)) return GardenInput.AnnounceStinky();
+
+        // The same key that reads the seed bank on the lawn reads the whole garden here. Both
+        // answer "what have I got", without touching what is in your hand.
+        if (Pressed(kb, _startLevel)) return GardenInput.AnnounceGarden();
+
+        return false;
+    }
+
     private static bool HandleLawnMovement(Keyboard kb)
     {
         if (Pressed(kb, Key.UpArrow)) return LawnInput.Move(0, -1);

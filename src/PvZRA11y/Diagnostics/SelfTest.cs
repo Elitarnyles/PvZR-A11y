@@ -48,6 +48,7 @@ public static class SelfTest
         LawnSection(sb, "seed bank", CheckSeedBank);
         LawnSection(sb, "zombies", CheckZombies);
         Section(sb, "plant chooser", Gameplay.SeedChooser.Dump);
+        Section(sb, "zen garden", Gameplay.Garden.Dump);
         Section(sb, "notes", Gameplay.Notes.Check);
         Section(sb, "panels", CheckPanels);
         Section(sb, "pause", CheckPause);
