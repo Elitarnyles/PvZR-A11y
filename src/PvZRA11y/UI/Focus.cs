@@ -228,6 +228,30 @@ public static class Focus
     /// mouse and keyboard, which is what makes Enter feel dead. Buttons are invoked through
     /// their own onClick, so anything the game does on click happens here too.
     /// </summary>
+    /// <summary>
+    /// Whether Enter would actually press something right now, asked without saying a word.
+    ///
+    /// For the places that have to choose what a key means before pressing it. Running the
+    /// real activation and looking at what came back would work, except that it explains
+    /// itself out loud on the way, and "Disabled" followed by something else happening is
+    /// not an explanation of anything.
+    /// </summary>
+    public static bool CanActivateCurrent()
+    {
+        GameObject go = CurrentSelection();
+        if (go == null) return false;
+
+        Selectable s = SelectableOn(go);
+        if (s == null) return false;
+
+        try
+        {
+            if (!UiText.IsInteractable(s)) return false;
+            return PanelScope.Evaluate(s).Reachable;
+        }
+        catch { return false; }
+    }
+
     public static bool ActivateCurrent()
     {
         GameObject go = CurrentSelection();

@@ -169,8 +169,13 @@ public static class Hotkeys
             if (Lawn.DialogueInFront && Gameplay.Dialogue.Advance()) return;
 
             // Crazy Dave also talks inside the shop panel, where there is no speech bubble
-            // to notice and the shop's own buttons are switched off until he has finished.
-            if (Store.IsActive && Store.DaveTalking() && Store.AdvanceDave()) return;
+            // to notice. But he talks about every item you land on, so "Dave is talking" is
+            // the shop's resting state and not a reason to take the key away from buying:
+            // treating it as one left the shop with no way to purchase anything at all.
+            // Enter moves him on only when there is nothing to press, which is exactly the
+            // scene before the taco mini-game, where the game has switched its buttons off.
+            if (Store.IsActive && Store.DaveTalking() && !Focus.CanActivateCurrent()
+                && Store.AdvanceDave()) return;
             if (LawnInput.Plant()) return;
             Focus.ActivateCurrent();
         }
