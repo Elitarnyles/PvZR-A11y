@@ -141,19 +141,27 @@ public static class VirtualPad
     /// </summary>
     public static bool HandBackToKeyboard()
     {
-        Mouse mouse;
-        try { mouse = Mouse.current; }
+        Keyboard keyboard;
+        try { keyboard = Keyboard.current; }
         catch { return false; }
-        if (mouse == null) return false;
+        if (keyboard == null) return false;
 
         try
         {
-            UnityEngine.Vector2 at = mouse.position.ReadValue();
+            // A key, not a mouse move. Moving the pointer was the obvious idea and it does
+            // nothing: the input system filters pointer movement out of the decision about
+            // which controls are in use, because a pointer drifts on its own and would
+            // otherwise be taking the controls back from a player holding a gamepad.
+            //
+            // OEM5 is chosen because nothing in this game binds it - checked against the
+            // whole action asset - so it actuates the keyboard without doing anything else.
+            var down = new KeyboardState();
+            down.Press(Key.OEM5);
 
-            InputSystem.QueueStateEvent(mouse, new MouseState { position = at + new UnityEngine.Vector2(1f, 0f) }, -1.0);
+            InputSystem.QueueStateEvent(keyboard, down, -1.0);
             InputSystem.Update();
 
-            InputSystem.QueueStateEvent(mouse, new MouseState { position = at }, -1.0);
+            InputSystem.QueueStateEvent(keyboard, new KeyboardState(), -1.0);
             InputSystem.Update();
 
             Core.Log.Msg($"[pad] handed the controls back; the game now thinks they are {ControlType()}");

@@ -60,8 +60,22 @@ public static class Garden
     /// </summary>
     public static bool InStore()
     {
-        try { return Zen()?.IsInStore ?? false; }
-        catch { return false; }
+        try { if (Zen()?.IsInStore == true) return true; }
+        catch { /* ask the screen instead */ }
+
+        // The shop's own flag is not enough. It is set by the activity that shows the shop,
+        // and a conversation opening on top of the shop takes the front panel away from it -
+        // so "am I in the shop" answered no while the shop was plainly on screen, and the
+        // garden's keys went on answering for it. Pressing "open the shop" while standing in
+        // the shop is a key that does nothing, which is indistinguishable from a broken mod.
+        try
+        {
+            string shown = UI.PanelScope.ShownPanelIds();
+            if (!string.IsNullOrEmpty(shown) && shown.Contains("store")) return true;
+        }
+        catch { /* nothing more to ask */ }
+
+        return false;
     }
 
     /// <summary>Which of the gardens is on screen.</summary>
