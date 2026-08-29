@@ -237,18 +237,52 @@ public static class GardenInput
     private static Garden.Progress? _pendingBefore;
     private static int _pendingFrames;
 
-    /// <summary>How long to give the game to register a tool before reading the plant back.</summary>
-    private const int ReportAfterFrames = 12;
+    /// <summary>
+    /// How long to keep watching for a tool to take effect before calling it a miss.
+    ///
+    /// Generous on purpose, and watched rather than waited out. A garden tool does not act
+    /// when it is clicked: the click puts a tool object on the plant, and the plant is only
+    /// watered when that finishes its animation a second or more later. A short fixed wait
+    /// read the plant while nothing had happened yet and reported a failure on every single
+    /// watering that worked.
+    /// </summary>
+    private const int WatchForFrames = 240;
 
     private static void TickReport()
     {
         if (_pendingTool == null) return;
-        if (++_pendingFrames < ReportAfterFrames) return;
 
         Garden.Tool tool = _pendingTool.Value;
-        _pendingTool = null;
+        Garden.Progress? now = Garden.ProgressOf(_pendingSlot.GridX, _pendingSlot.GridY);
 
+        // Report the moment something moves, rather than at the end of a fixed wait. A plant
+        // that answers in three frames should not be reported four seconds later.
+        if (Moved(_pendingBefore, now))
+        {
+            _pendingTool = null;
+            Report(tool, _pendingSlot, _pendingBefore);
+            return;
+        }
+
+        if (++_pendingFrames < WatchForFrames) return;
+
+        _pendingTool = null;
         Report(tool, _pendingSlot, _pendingBefore);
+    }
+
+    /// <summary>Whether anything about the plant changed since the tool was used.</summary>
+    private static bool Moved(Garden.Progress? before, Garden.Progress? after)
+    {
+        if (before == null || after == null) return before != null || after != null;
+
+        Garden.Progress was = before.Value;
+        Garden.Progress now = after.Value;
+
+        return now.Age != was.Age
+            || now.Fed != was.Fed
+            || now.Watered != was.Watered
+            || now.Fulfilled != was.Fulfilled
+            || now.Fertilized != was.Fertilized;
     }
 
     /// <summary>

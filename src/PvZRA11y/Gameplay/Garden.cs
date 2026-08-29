@@ -630,11 +630,61 @@ public static class Garden
         }
     }
 
-    /// <summary>Opens Crazy Dave's shop from the garden.</summary>
-    public static bool OpenStore() => PressButton(ReloadedObjectType.StoreButton);
+    /// <summary>
+    /// Opens Crazy Dave's shop from the garden.
+    ///
+    /// Asked first, then done. ZenGarden.OpenStore leaves the garden as its first act and
+    /// then reaches for a store screen it assumes it will be given - so when the game is not
+    /// willing to show one it throws halfway through, having already torn the garden down.
+    /// The activity answers whether it is willing, and that question costs nothing.
+    /// </summary>
+    public static bool OpenStore()
+    {
+        ZenGarden zen = Zen();
+        Il2CppReloaded.TreeStateActivities.GameplayActivity app = Lawn.AppRef;
+        if (zen == null || app == null) return false;
+
+        bool willing;
+        try { willing = app.CanShowStore(); }
+        catch (Exception ex)
+        {
+            Core.Log.Warning($"[garden] could not ask about the shop: {ex.Message}");
+            return false;
+        }
+
+        if (!willing)
+        {
+            Core.Log.Msg("[garden] the game will not show the shop right now");
+            return false;
+        }
+
+        try { zen.OpenStore(); }
+        catch (Exception ex)
+        {
+            Core.Log.Warning($"[garden] could not open the shop: {ex.Message}");
+            return false;
+        }
+
+        Core.Log.Msg("[garden] opened the shop");
+        return true;
+    }
 
     /// <summary>Leaves the garden altogether.</summary>
-    public static bool Leave() => PressButton(ReloadedObjectType.MenuButton);
+    public static bool Leave()
+    {
+        ZenGarden zen = Zen();
+        if (zen == null) return false;
+
+        try { zen.LeaveGarden(); }
+        catch (Exception ex)
+        {
+            Core.Log.Warning($"[garden] could not leave: {ex.Message}");
+            return false;
+        }
+
+        Core.Log.Msg("[garden] asked to leave the garden");
+        return true;
+    }
 
     /// <summary>
     /// Clicks a pot with whatever is already in hand.
@@ -814,6 +864,11 @@ public static class Garden
         (int planted, int total) = Census();
         sb.AppendLine($"  planted        : {planted} of {total}, {NeedyCount()} want something");
         sb.AppendLine($"  wheelbarrow    : {InWheelbarrow() ?? "<empty>"}");
+
+        string canShop;
+        try { canShop = Lawn.AppRef == null ? "<no activity>" : Lawn.AppRef.CanShowStore().ToString(); }
+        catch (Exception ex) { canShop = "<threw: " + FirstLine(ex.Message) + ">"; }
+        sb.AppendLine($"  shop willing   : {canShop}");
 
         sb.AppendLine("  buttons        :");
         foreach (ReloadedObjectType what in new[]

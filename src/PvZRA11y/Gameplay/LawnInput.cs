@@ -42,7 +42,16 @@ public static class LawnInput
         // It did: the digits chose a garden tool AND asked the seed bank for a slot, so every
         // press announced the tool and was then talked over by "No slot 1" three milliseconds
         // later. The garden has its own handler for the same keys.
-        if (Garden.IsActive) return;
+        //
+        // But not the whole method. Standing this down entirely also stopped the automatic
+        // collector, and the garden is where it matters most: a grown plant drops coins on
+        // the floor and there is no other way to notice them. Sweeping the board is the one
+        // thing here that belongs in both places.
+        if (Garden.IsActive)
+        {
+            TickSunCollection();
+            return;
+        }
 
         TickPickupTrace();
         TickPickupVerify();
