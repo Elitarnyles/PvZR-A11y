@@ -221,8 +221,34 @@ public static class GardenInput
             return true;
         }
 
-        Report(tool, slot.Value, before);
+        // Not read back in the same breath. The game registers the watering on its own next
+        // update, so asking straight away found the plant still thirsty and reported a
+        // failure that had not happened - while the game's own advice was cheerfully saying
+        // "keep watering your plants".
+        _pendingTool = tool;
+        _pendingSlot = slot.Value;
+        _pendingBefore = before;
+        _pendingFrames = 0;
         return true;
+    }
+
+    private static Garden.Tool? _pendingTool;
+    private static Garden.Slot _pendingSlot;
+    private static Garden.Occupant? _pendingBefore;
+    private static int _pendingFrames;
+
+    /// <summary>How long to give the game to register a tool before reading the plant back.</summary>
+    private const int ReportAfterFrames = 12;
+
+    private static void TickReport()
+    {
+        if (_pendingTool == null) return;
+        if (++_pendingFrames < ReportAfterFrames) return;
+
+        Garden.Tool tool = _pendingTool.Value;
+        _pendingTool = null;
+
+        Report(tool, _pendingSlot, _pendingBefore);
     }
 
     /// <summary>
@@ -272,7 +298,9 @@ public static class GardenInput
         Core.Log.Msg($"[garden] {tool.What} changed nothing on slot {slot.Index + 1}" +
                      $" (need was {before.Value.Need})");
 
-        string wanted = Garden.NeedName(after.Value.Need);
+        // The bare word, not the standalone line: "wants Water needed" is what happens when
+        // a sentence is dropped into the middle of another one.
+        string wanted = Garden.WantName(after.Value.Need);
         Speech.Say(wanted == null
                        ? Strings.T("garden.wants_nothing", Lawn.PlantName(after.Value.Type))
                        : Strings.T("garden.wanted_instead", Lawn.PlantName(after.Value.Type), wanted),
@@ -408,8 +436,11 @@ public static class GardenInput
         {
             if (_ages.Count > 0) _ages.Clear();
             _toolsFor = (GardenType)(-1);
+            _pendingTool = null;
             return;
         }
+
+        TickReport();
 
         foreach (Garden.Slot slot in Garden.Slots())
         {

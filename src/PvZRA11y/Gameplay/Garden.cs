@@ -225,6 +225,21 @@ public static class Garden
         return Strings.Has(key) ? Strings.T(key) : UI.UiText.Prettify(need.ToString());
     }
 
+    /// <summary>
+    /// The bare noun for a need, for dropping into the middle of a sentence.
+    ///
+    /// The standalone line is a whole sentence - "Water needed" - because that is how it is
+    /// heard when walking across the pots, and it is the wording the original PvZ
+    /// accessibility mod uses. Inside another sentence it has to be a noun, or the mod says
+    /// "Marigold wants Water needed".
+    /// </summary>
+    public static string WantName(PottedPlantNeed need)
+    {
+        if (need == PottedPlantNeed.None) return null;
+        string key = "garden.wants." + need;
+        return Strings.Has(key) ? Strings.T(key) : UI.UiText.Prettify(need.ToString());
+    }
+
     /// <summary>The spoken name of a growth stage.</summary>
     public static string AgeName(PottedPlantAge age)
     {
@@ -535,39 +550,64 @@ public static class Garden
         Core.Log.Msg($"[garden] pointed at slot {slot.Index + 1}: plant highlighted = {lit}");
     }
 
-    /// <summary>Opens Crazy Dave's shop from the garden.</summary>
-    public static bool OpenStore()
+    /// <summary>
+    /// Presses one of the buttons along the top of the garden, by clicking where it is.
+    ///
+    /// Calling the method behind a button directly does not work here, and fails in the worst
+    /// way: ZenGarden.OpenStore leaves the garden as its first act and then walks into
+    /// something the click was supposed to have set up, so it throws halfway through and
+    /// takes the garden with it. The game only ever reaches it from Board.MouseUp.
+    ///
+    /// So the mod does what a mouse does. Board.GetZenButtonRect gives each button's real
+    /// position - it is the same call the game uses to decide whether a click landed on one -
+    /// and a click at the middle of that goes through the game's own dispatch with everything
+    /// it expects already in place.
+    /// </summary>
+    public static bool PressButton(ReloadedObjectType what)
     {
-        ZenGarden zen = Zen();
-        if (zen == null) return false;
+        if (Board == null) return false;
 
-        try { zen.OpenStore(); }
+        try { if (!Board.CanUseGameObject(what)) { Core.Log.Msg($"[garden] {what} is not available"); return false; } }
+        catch { /* ask for the rect anyway */ }
+
+        UnityEngine.Rect rect;
+        try { rect = Board.GetZenButtonRect(what); }
         catch (Exception ex)
         {
-            Core.Log.Warning($"[garden] could not open the shop: {ex.Message}");
+            Core.Log.Warning($"[garden] could not find the {what} button: {ex.Message}");
             return false;
         }
 
-        Core.Log.Msg("[garden] opened the shop");
-        return true;
+        if (rect.width <= 0f || rect.height <= 0f)
+        {
+            Core.Log.Msg($"[garden] the {what} button has no position ({rect.width}x{rect.height})");
+            return false;
+        }
+
+        int px = (int)Math.Round(rect.x + rect.width / 2f);
+        int py = (int)Math.Round(rect.y + rect.height / 2f);
+
+        try
+        {
+            Core.Log.Msg($"[garden] pressing {what} at pixel {px},{py}" +
+                         $" (rect {rect.x:0},{rect.y:0} {rect.width:0}x{rect.height:0})");
+
+            Board.MouseDown(px, py, 1, Player);
+            Board.MouseUp(px, py, 1, Player);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Core.Log.Warning($"[garden] could not press {what}: {ex.Message}");
+            return false;
+        }
     }
+
+    /// <summary>Opens Crazy Dave's shop from the garden.</summary>
+    public static bool OpenStore() => PressButton(ReloadedObjectType.StoreButton);
 
     /// <summary>Leaves the garden altogether.</summary>
-    public static bool Leave()
-    {
-        ZenGarden zen = Zen();
-        if (zen == null) return false;
-
-        try { zen.LeaveGarden(); }
-        catch (Exception ex)
-        {
-            Core.Log.Warning($"[garden] could not leave: {ex.Message}");
-            return false;
-        }
-
-        Core.Log.Msg("[garden] left the garden");
-        return true;
-    }
+    public static bool Leave() => PressButton(ReloadedObjectType.MenuButton);
 
     /// <summary>
     /// Clicks a pot with whatever is already in hand.
@@ -738,6 +778,29 @@ public static class Garden
         (int planted, int total) = Census();
         sb.AppendLine($"  planted        : {planted} of {total}, {NeedyCount()} want something");
         sb.AppendLine($"  wheelbarrow    : {InWheelbarrow() ?? "<empty>"}");
+
+        sb.AppendLine("  buttons        :");
+        foreach (ReloadedObjectType what in new[]
+                 {
+                     ReloadedObjectType.StoreButton, ReloadedObjectType.MenuButton,
+                     ReloadedObjectType.NextGarden, ReloadedObjectType.WateringCan,
+                     ReloadedObjectType.Fertilizer, ReloadedObjectType.BugSpray,
+                     ReloadedObjectType.Phonograph, ReloadedObjectType.Chocolate,
+                     ReloadedObjectType.Glove, ReloadedObjectType.MoneySign,
+                     ReloadedObjectType.Wheelbarrow, ReloadedObjectType.Stinky,
+                 })
+        {
+            string usable, where;
+            try { usable = Board.CanUseGameObject(what).ToString(); } catch (Exception ex) { usable = "<threw: " + ex.Message + ">"; }
+            try
+            {
+                UnityEngine.Rect r = Board.GetZenButtonRect(what);
+                where = $"{r.x:0},{r.y:0} {r.width:0}x{r.height:0}";
+            }
+            catch (Exception ex) { where = "<threw: " + ex.Message + ">"; }
+
+            sb.AppendLine($"      {what,-14} usable={usable,-6} rect={where}");
+        }
 
         sb.AppendLine("  tools          :");
         foreach (Tool tool in Tools())

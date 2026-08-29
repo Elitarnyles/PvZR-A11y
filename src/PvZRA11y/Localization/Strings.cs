@@ -121,6 +121,11 @@ public static class Strings
         ["garden.need.BugSpray"] = "Bug spray needed",
         ["garden.need.Phonograph"] = "Phonograph needed",
 
+        ["garden.wants.Water"] = "water",
+        ["garden.wants.Fertilizer"] = "fertilizer",
+        ["garden.wants.BugSpray"] = "bug spray",
+        ["garden.wants.Phonograph"] = "the phonograph",
+
         ["garden.happy"] = "Happy",
         ["garden.empty"] = "Empty pot",
         ["garden.nocturnal"] = "Nocturnal, needs moving to the mushroom garden",

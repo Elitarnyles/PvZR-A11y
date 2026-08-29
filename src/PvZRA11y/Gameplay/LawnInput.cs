@@ -38,6 +38,12 @@ public static class LawnInput
     {
         if (!Lawn.IsOnBoard) return;
 
+        // The Zen Garden runs on a board, so everything here would otherwise run there too.
+        // It did: the digits chose a garden tool AND asked the seed bank for a slot, so every
+        // press announced the tool and was then talked over by "No slot 1" three milliseconds
+        // later. The garden has its own handler for the same keys.
+        if (Garden.IsActive) return;
+
         TickPickupTrace();
         TickPickupVerify();
         TickNumberKeys();
