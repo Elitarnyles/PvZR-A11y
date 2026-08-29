@@ -168,6 +168,8 @@ public static class Strings
         ["garden.placed"] = "Put the {0} down, {1}",
         ["garden.still_holding"] = "Still holding the {0}",
         ["garden.cannot_place"] = "Cannot put the {0} there.",
+        ["garden.no_shop"] = "The shop is not open from here.",
+        ["garden.cannot_leave"] = "Cannot leave the garden from here.",
         ["garden.no_stinky"] = "You do not have Stinky the snail.",
         ["garden.stinky_awake"] = "Stinky is already awake.",
         ["garden.stinky_woken"] = "Stinky is awake.",

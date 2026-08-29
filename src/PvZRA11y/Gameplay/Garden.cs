@@ -51,6 +51,19 @@ public static class Garden
         }
     }
 
+    /// <summary>
+    /// True while the shop is up over the garden.
+    ///
+    /// The mode stays the garden's the whole time the shop is open, so without this the
+    /// garden's keys would answer for the shop's - and Backspace, which leaves the garden
+    /// here and leaves the shop there, would walk out of both at once.
+    /// </summary>
+    public static bool InStore()
+    {
+        try { return Zen()?.IsInStore ?? false; }
+        catch { return false; }
+    }
+
     /// <summary>Which of the gardens is on screen.</summary>
     public static GardenType Which()
     {
@@ -465,6 +478,19 @@ public static class Garden
             return false;
         }
 
+        // The one thing a keyboard cannot do by itself.
+        //
+        // A garden tool does NOT act on the position it is clicked at. MouseDownWithFeedingTool
+        // walks the board looking for the first plant with mHighlighted set, and that flag is
+        // written once a frame from the real mouse pointer's position. A player who never moves
+        // the mouse therefore has nothing highlighted, and every watering can lands on nobody -
+        // the tool is picked up, the click goes through, and not one drop reaches a plant.
+        //
+        // So the mod does what the pointer would have done, with the game's own method, in the
+        // same call as the click: clear the flag everywhere, let the game set it from the slot's
+        // pixel, and only then press.
+        Highlight(slot);
+
         try
         {
             Core.Log.Msg($"[garden] {tool.What} on slot {slot.Index + 1}" +
@@ -479,6 +505,68 @@ public static class Garden
             Core.Log.Warning($"[garden] could not use {tool.What}: {ex.Message}");
             return false;
         }
+    }
+
+    /// <summary>
+    /// Points the game at one pot, the way a mouse hovering over it would.
+    ///
+    /// Cleared everywhere first so exactly one plant can answer. The game clears the flag on
+    /// every plant each frame before setting it, and skipping that would leave a plant from a
+    /// previous press still marked, which is a tool landing somewhere you are not standing.
+    /// </summary>
+    public static void Highlight(Slot slot)
+    {
+        if (Board == null) return;
+
+        foreach (Slot other in Slots())
+        {
+            Occupant? occupant = Occupied(other.GridX, other.GridY);
+            if (occupant == null) continue;
+            try { occupant.Value.Plant.mHighlighted = false; } catch { }
+        }
+
+        try { Board.HighlightPlantsForMouse(slot.PixelX, slot.PixelY, Player); }
+        catch (Exception ex) { Core.Log.Warning($"[garden] could not point at the pot: {ex.Message}"); }
+
+        Occupant? target = Occupied(slot.GridX, slot.GridY);
+        bool lit = false;
+        if (target != null) try { lit = target.Value.Plant.mHighlighted; } catch { }
+
+        Core.Log.Msg($"[garden] pointed at slot {slot.Index + 1}: plant highlighted = {lit}");
+    }
+
+    /// <summary>Opens Crazy Dave's shop from the garden.</summary>
+    public static bool OpenStore()
+    {
+        ZenGarden zen = Zen();
+        if (zen == null) return false;
+
+        try { zen.OpenStore(); }
+        catch (Exception ex)
+        {
+            Core.Log.Warning($"[garden] could not open the shop: {ex.Message}");
+            return false;
+        }
+
+        Core.Log.Msg("[garden] opened the shop");
+        return true;
+    }
+
+    /// <summary>Leaves the garden altogether.</summary>
+    public static bool Leave()
+    {
+        ZenGarden zen = Zen();
+        if (zen == null) return false;
+
+        try { zen.LeaveGarden(); }
+        catch (Exception ex)
+        {
+            Core.Log.Warning($"[garden] could not leave: {ex.Message}");
+            return false;
+        }
+
+        Core.Log.Msg("[garden] left the garden");
+        return true;
     }
 
     /// <summary>

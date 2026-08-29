@@ -303,6 +303,10 @@ public static class Hotkeys
     /// </summary>
     private static bool HandleGarden(Keyboard kb)
     {
+        // The shop opens over the garden without changing the game mode, so the garden layer
+        // has to stand aside or it would answer for the shop as well.
+        if (Garden.InStore() || Store.IsActive) return false;
+
         if (Pressed(kb, Key.UpArrow)) return GardenInput.Move(0, -1);
         if (Pressed(kb, Key.DownArrow)) return GardenInput.Move(0, 1);
         if (Pressed(kb, Key.LeftArrow)) return GardenInput.Move(-1, 0);
@@ -322,6 +326,25 @@ public static class Hotkeys
         }
 
         if (Pressed(kb, _activate)) return GardenInput.Use();
+
+        // Tab opens the shop and Backspace leaves the garden, which is where the original PvZ
+        // accessibility mod puts them. Tab is otherwise the game's fast-forward, and there is
+        // nothing to fast-forward here; Backspace already means "back out of this" everywhere
+        // else in the mod. From inside the shop, Backspace comes back here through the shop's
+        // own way out, which the mod already binds.
+        if (Pressed(kb, _focusNext))
+        {
+            if (Garden.OpenStore()) return true;
+            Speech.Say(Strings.T("garden.no_shop"), context: "garden");
+            return true;
+        }
+
+        if (Pressed(kb, _shovel))
+        {
+            if (Garden.Leave()) return true;
+            Speech.Say(Strings.T("garden.cannot_leave"), context: "garden");
+            return true;
+        }
 
         if (Pressed(kb, _info1))
         {
