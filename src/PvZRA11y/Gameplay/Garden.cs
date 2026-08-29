@@ -166,6 +166,33 @@ public static class Garden
 
     #region what is in a pot
 
+    /// <summary>
+    /// The numbers that move when a tool takes, so a success can be told from a miss.
+    ///
+    /// Not the need. A sprout wants three to five waterings before it wants fertilizer, so
+    /// after a watering that plainly worked - the coin lands, the sound plays - it still
+    /// wants water, and comparing needs called every one of those a failure. What actually
+    /// moves is the count of feedings and the times the game stamps on the plant.
+    /// </summary>
+    public readonly record struct Progress(PottedPlantAge Age, int Fed, int Target,
+                                           long Watered, long Fulfilled, long Fertilized);
+
+    public static Progress? ProgressOf(int gridX, int gridY)
+    {
+        Occupant? occupant = Occupied(gridX, gridY);
+        if (occupant == null) return null;
+
+        PottedPlant potted = occupant.Value.Potted;
+
+        try
+        {
+            return new Progress(potted.mPlantAge, potted.mTimesFed, potted.mFeedingsPerGrow,
+                                potted.mLastWateredTime, potted.mLastNeedFulfilledTime,
+                                potted.mLastFertilizedTime);
+        }
+        catch { return null; }
+    }
+
     /// <summary>A pot's contents, or nothing when the pot is empty.</summary>
     public readonly record struct Occupant(PottedPlant Potted, Plant Plant, SeedType Type,
                                            PottedPlantAge Age, PottedPlantNeed Need);
@@ -757,6 +784,15 @@ public static class Garden
 
     #region diagnostics
 
+    private static readonly char[] NewlineChars = { (char)13, (char)10 };
+
+    private static string FirstLine(string text)
+    {
+        if (string.IsNullOrEmpty(text)) return text;
+        int cut = text.IndexOfAny(NewlineChars);
+        return cut < 0 ? text : text[..cut];
+    }
+
     /// <summary>Everything about the garden, for the self-test.</summary>
     public static void Dump(System.Text.StringBuilder sb)
     {
@@ -790,8 +826,12 @@ public static class Garden
                      ReloadedObjectType.Wheelbarrow, ReloadedObjectType.Stinky,
                  })
         {
+            // Trimmed on purpose: this call throws "Unknown store item type" for the buttons
+            // that are not store items, and the full IL2CPP stack trace for each one buried
+            // the table it belongs to.
             string usable, where;
-            try { usable = Board.CanUseGameObject(what).ToString(); } catch (Exception ex) { usable = "<threw: " + ex.Message + ">"; }
+            try { usable = Board.CanUseGameObject(what).ToString(); }
+            catch (Exception ex) { usable = "<threw: " + FirstLine(ex.Message) + ">"; }
             try
             {
                 UnityEngine.Rect r = Board.GetZenButtonRect(what);

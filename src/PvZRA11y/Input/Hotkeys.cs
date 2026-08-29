@@ -332,6 +332,12 @@ public static class Hotkeys
         // nothing to fast-forward here; Backspace already means "back out of this" everywhere
         // else in the mod. From inside the shop, Backspace comes back here through the shop's
         // own way out, which the mod already binds.
+        // Both of these press a button on the garden's own top bar, and the mod cannot reach
+        // that bar yet: it is built in the interface layer, the board reports no position for
+        // any of its buttons, and the only control the mod can see there is the template they
+        // were made from. Calling the method behind the shop button directly is worse than
+        // useless - it tears the garden down before it fails - so these keys say so plainly
+        // until the bar itself can be reached.
         if (Pressed(kb, _focusNext))
         {
             if (Garden.OpenStore()) return true;

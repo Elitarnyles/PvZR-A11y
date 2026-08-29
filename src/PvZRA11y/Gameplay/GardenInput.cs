@@ -212,7 +212,7 @@ public static class GardenInput
         // Read before, so the change can be reported rather than guessed at. A watering that
         // takes leaves the plant with a different wish, and that is the one thing the player
         // needs to hear.
-        Garden.Occupant? before = Garden.Occupied(slot.Value.GridX, slot.Value.GridY);
+        Garden.Progress? before = Garden.ProgressOf(slot.Value.GridX, slot.Value.GridY);
 
         if (!Garden.Use(tool, slot.Value))
         {
@@ -234,7 +234,7 @@ public static class GardenInput
 
     private static Garden.Tool? _pendingTool;
     private static Garden.Slot _pendingSlot;
-    private static Garden.Occupant? _pendingBefore;
+    private static Garden.Progress? _pendingBefore;
     private static int _pendingFrames;
 
     /// <summary>How long to give the game to register a tool before reading the plant back.</summary>
@@ -252,58 +252,74 @@ public static class GardenInput
     }
 
     /// <summary>
-    /// Says what the tool did, by looking at the plant again rather than assuming.
+    /// Says what the tool did, by looking at the numbers that move rather than at the need.
     ///
-    /// The game applies a tool only when it matches what the plant is asking for. Anything
-    /// else plays its animation, comes off the stock and changes nothing at all - so the only
-    /// honest report is the one taken from the plant afterwards.
+    /// The need is the wrong measure. A sprout wants three to five waterings before it wants
+    /// anything else, so a watering that plainly worked leaves it still wanting water - and
+    /// reporting on the need called every one of those a failure while the coin was landing
+    /// on the floor. What moves is the count of feedings and the times the game stamps on
+    /// the plant.
     /// </summary>
-    private static void Report(Garden.Tool tool, Garden.Slot slot, Garden.Occupant? before)
+    private static void Report(Garden.Tool tool, Garden.Slot slot, Garden.Progress? before)
     {
-        Garden.Occupant? after = Garden.Occupied(slot.GridX, slot.GridY);
+        Garden.Progress? after = Garden.ProgressOf(slot.GridX, slot.GridY);
+        Garden.Occupant? occupant = Garden.Occupied(slot.GridX, slot.GridY);
 
-        if (before == null || after == null)
+        // The pot emptied, which is what selling looks like from here.
+        if (before != null && after == null)
         {
-            // The pot emptied, which is what selling looks like from here.
-            if (before != null && after == null)
-            {
-                Speech.Say(Strings.T("garden.gone", Lawn.PlantName(before.Value.Type)),
-                           interrupt: true, context: "garden", allowRepeat: true);
-                return;
-            }
+            Speech.Say(Strings.T("garden.gone"), interrupt: true, context: "garden", allowRepeat: true);
+            return;
+        }
 
+        if (before == null || after == null || occupant == null)
+        {
             Speech.Say(Strings.T("garden.nothing_happened"), context: "garden");
             return;
         }
 
-        if (after.Value.Age != before.Value.Age)
+        string name = Lawn.PlantName(occupant.Value.Type);
+        Garden.Progress was = before.Value;
+        Garden.Progress now = after.Value;
+
+        if (now.Age != was.Age)
         {
-            Speech.Say(Strings.T("garden.grew", Lawn.PlantName(after.Value.Type),
-                                 Garden.AgeName(after.Value.Age)),
+            Speech.Say(Strings.T("garden.grew", name, Garden.AgeName(now.Age)),
                        interrupt: true, context: "garden", allowRepeat: true);
             return;
         }
 
-        if (after.Value.Need != before.Value.Need)
+        // One more feeding done. The count towards the next stage is the number worth having:
+        // it is the only thing that says whether this plant is nearly ready for fertilizer.
+        if (now.Fed != was.Fed)
         {
-            string now = Garden.NeedName(after.Value.Need) ?? Strings.T("garden.happy");
-            Speech.Say(Strings.T("garden.now", Lawn.PlantName(after.Value.Type), now),
+            Speech.Say(now.Target > 0
+                           ? Strings.T("garden.fed_progress", name, now.Fed, now.Target)
+                           : Strings.T("garden.tended", name),
                        interrupt: true, context: "garden", allowRepeat: true);
             return;
         }
 
-        // Nothing moved. Almost always the wrong tool, which the game accepts in silence and
-        // takes off your stock, so saying so is the difference between a mistake you can
-        // learn from and a drawer that empties for no reason.
-        Core.Log.Msg($"[garden] {tool.What} changed nothing on slot {slot.Index + 1}" +
-                     $" (need was {before.Value.Need})");
+        bool stamped = now.Watered != was.Watered
+                    || now.Fulfilled != was.Fulfilled
+                    || now.Fertilized != was.Fertilized;
 
-        // The bare word, not the standalone line: "wants Water needed" is what happens when
-        // a sentence is dropped into the middle of another one.
-        string wanted = Garden.WantName(after.Value.Need);
+        if (stamped)
+        {
+            Speech.Say(Strings.T("garden.tended", name),
+                       interrupt: true, context: "garden", allowRepeat: true);
+            return;
+        }
+
+        // Nothing moved at all. Almost always the wrong tool, which the game accepts in
+        // silence and takes off your stock.
+        Core.Log.Msg($"[garden] {tool.What} moved nothing on slot {slot.Index + 1}" +
+                     $" (fed {was.Fed}/{was.Target}, need {occupant.Value.Need})");
+
+        string wanted = Garden.WantName(occupant.Value.Need);
         Speech.Say(wanted == null
-                       ? Strings.T("garden.wants_nothing", Lawn.PlantName(after.Value.Type))
-                       : Strings.T("garden.wanted_instead", Lawn.PlantName(after.Value.Type), wanted),
+                       ? Strings.T("garden.wants_nothing", name)
+                       : Strings.T("garden.wanted_instead", name, wanted),
                    interrupt: true, context: "garden", allowRepeat: true);
     }
 
@@ -403,6 +419,33 @@ public static class GardenInput
     /// </summary>
     private static readonly Dictionary<int, PottedPlantAge> _ages = new();
 
+    private static bool _dumpedHud;
+
+    /// <summary>
+    /// Writes out the garden's own top bar, once per visit.
+    ///
+    /// Its buttons - previous, next, visit other garden, shop, back - are on screen and their
+    /// text is readable, but the mod finds exactly one control on that panel and it is a
+    /// template. Board.GetZenButtonRect, which in the 2009 game gave each of them a position,
+    /// returns nothing at all here: the bar was rebuilt in the interface layer and no longer
+    /// exists as far as the board is concerned.
+    ///
+    /// So the dump goes in by itself rather than waiting for someone who cannot see the
+    /// screen to think of pressing a diagnostic key at the right moment.
+    /// </summary>
+    private static void TickHudDump()
+    {
+        if (_dumpedHud) return;
+        if (UI.PanelScope.FrontPanelId != "zenGardenHUD") return;
+
+        _dumpedHud = true;
+        Core.Log.Msg("[garden] writing out the garden bar, to find where its buttons live");
+
+        try { Diagnostics.Probe.DumpCurrentScreen(); }
+        catch (Exception ex) { Core.Log.Warning($"[garden] could not dump the bar: {ex.Message}"); }
+    }
+
+
     private static bool _wasActive;
 
     public static void Tick()
@@ -437,10 +480,12 @@ public static class GardenInput
             if (_ages.Count > 0) _ages.Clear();
             _toolsFor = (GardenType)(-1);
             _pendingTool = null;
+            _dumpedHud = false;
             return;
         }
 
         TickReport();
+        TickHudDump();
 
         foreach (Garden.Slot slot in Garden.Slots())
         {

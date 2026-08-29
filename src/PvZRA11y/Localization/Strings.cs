@@ -158,7 +158,9 @@ public static class Strings
 
         ["garden.grew"] = "{0} grew to {1}",
         ["garden.now"] = "{0}, {1}",
-        ["garden.gone"] = "{0} is gone",
+        ["garden.gone"] = "The plant is gone",
+        ["garden.fed_progress"] = "{0} tended, {1} of {2}",
+        ["garden.tended"] = "{0} tended",
         ["garden.wants_nothing"] = "{0} wants nothing right now",
         ["garden.wanted_instead"] = "Nothing happened. {0} wants {1}",
         ["garden.nothing_happened"] = "Nothing happened.",
