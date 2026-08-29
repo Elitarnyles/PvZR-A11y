@@ -481,6 +481,35 @@ public static class Garden
         }
     }
 
+    /// <summary>
+    /// Clicks a pot with whatever is already in hand.
+    ///
+    /// The glove and the wheelbarrow are two-step: the first press lifts a plant onto the
+    /// cursor, and the second has to put it down. Reaching for the tool again on that second
+    /// press would drop what you were carrying and pick the empty tool back up, which is a
+    /// way of losing a plant with no way to notice. A plain click is what the mouse does, and
+    /// the game's own dispatch already knows what a carried plant means.
+    /// </summary>
+    public static bool Place(Slot slot)
+    {
+        if (Board == null) return false;
+
+        try
+        {
+            Core.Log.Msg($"[garden] placing what is in hand on slot {slot.Index + 1}" +
+                         $" at pixel {slot.PixelX},{slot.PixelY}");
+
+            Board.MouseDown(slot.PixelX, slot.PixelY, 1, Player);
+            Board.MouseUp(slot.PixelX, slot.PixelY, 1, Player);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Core.Log.Warning($"[garden] could not put the plant down: {ex.Message}");
+            return false;
+        }
+    }
+
     /// <summary>Moves on to the next garden, and says which one arrived.</summary>
     public static bool NextGarden()
     {

@@ -157,6 +157,35 @@ public static class GardenInput
 
         Garden.Tool tool = chosen.Value;
 
+        // Something already in hand wins over the tool list. The glove and the wheelbarrow
+        // both lift a plant onto the cursor and expect a second click to put it down; going
+        // back to the tools on that second press would drop the plant and re-arm an empty
+        // glove, losing it with nothing said.
+        if (Lawn.HeldSeed() != SeedType.None)
+        {
+            Garden.Slot? target = Garden.SlotUnderCursor();
+            if (target == null)
+            {
+                Speech.Say(Strings.T("garden.between_pots"), context: "garden");
+                return true;
+            }
+
+            string carried = Lawn.PlantName(Lawn.HeldSeed());
+
+            if (!Garden.Place(target.Value))
+            {
+                Speech.Say(Strings.T("garden.cannot_place", carried),
+                           interrupt: true, context: "garden", allowRepeat: true);
+                return true;
+            }
+
+            Speech.Say(Lawn.HeldSeed() == SeedType.None
+                           ? Strings.T("garden.placed", carried, Garden.PositionOf(target.Value))
+                           : Strings.T("garden.still_holding", carried),
+                       interrupt: true, context: "garden", allowRepeat: true);
+            return true;
+        }
+
         // Not a tool at all, and it does not care where the cursor is standing.
         if (tool.What == ReloadedObjectType.NextGarden)
         {

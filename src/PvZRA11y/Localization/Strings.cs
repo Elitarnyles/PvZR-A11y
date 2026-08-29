@@ -165,6 +165,9 @@ public static class Strings
         ["garden.cannot_switch"] = "No other garden to go to.",
         ["garden.nothing_planted"] = "Nothing planted here yet.",
 
+        ["garden.placed"] = "Put the {0} down, {1}",
+        ["garden.still_holding"] = "Still holding the {0}",
+        ["garden.cannot_place"] = "Cannot put the {0} there.",
         ["garden.no_stinky"] = "You do not have Stinky the snail.",
         ["garden.stinky_awake"] = "Stinky is already awake.",
         ["garden.stinky_woken"] = "Stinky is awake.",
