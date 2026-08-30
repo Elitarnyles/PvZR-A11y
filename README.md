@@ -145,10 +145,12 @@ mod puts back whatever you were holding first, and says you are carrying the new
 once the game confirms it. A vase says what came out of it as it breaks, never before.
 - **Tab** — the game's fast-forward. The mod announces the new speed.
 - **F1** — scan the current row: how many zombies, and each one's column, kind and state.
-  Pressed twice quickly, it names the rows that have anything in them at all.
+  Pressed twice quickly, what is guarding that row: its mower, its pool cleaner or its roof
+  sweeper — or in I, Zombie, whether the brain is still there.
 - **F2** — detail of the square under the cursor.
-- **F3** — how much sun you have.
-- **F4** — level progress.
+- **F3** — how many coins you have. Pressed twice quickly, how much sun.
+- **F4** — level progress. On the last level, Dr Zomboss instead; in I, Zombie, how many
+  brains are left and which rows they are in.
 
 ### The last level
 

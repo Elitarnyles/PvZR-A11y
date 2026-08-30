@@ -675,6 +675,16 @@ public static class LawnInput
         Speech.SayVerbatim(string.Join(". ", parts), "lawn detail");
     }
 
+    /// <summary>
+    /// Says how many coins are in the purse.
+    ///
+    /// On the first press of the money key, with sun on the second — the order the original
+    /// mod used. Coins are the slower currency and the one you go looking for an answer
+    /// about; sun changes every few seconds and is asked for constantly, so it sits where a
+    /// second press lands without waiting for the first to finish speaking.
+    /// </summary>
+    public static void AnnounceCoins() => UI.Store.AnnounceCoins();
+
     /// <summary>Announces the sun total, the number every decision on the lawn depends on.</summary>
     public static void AnnounceSun()
     {

@@ -87,25 +87,19 @@ public static class Sonar
         Tones.ClearPending();
         PlayTones(found);
 
-        // What is guarding this row comes first, the way the original mod put it on this key.
-        // It is the fact that decides whether a row can be left to look after itself, and it
-        // is the one thing on a lawn a player can never work out from anywhere else.
-        string guard = Lawn.LastLineOf(row);
-        string zombies = Compose(found, Boss.BallInRow(row));
-
-        Speech.SayVerbatim(string.IsNullOrEmpty(guard) ? zombies : guard + ". " + zombies, "sonar");
+        Speech.SayVerbatim(Compose(found, Boss.BallInRow(row)), "sonar");
         ReportSkipped("sonar");
     }
 
     /// <summary>
-    /// Names the rows that have anything in them, and nothing else.
+    /// What is guarding this row: its mower, or in I, Zombie its brain.
     ///
-    /// This is the question that matters when deciding where to plant, and the per-row scan
-    /// answers a different one. Reading out every zombie with its column and name is precise
-    /// and useless for the purpose: the rows under threat have to be reassembled in your head
-    /// from a list ordered by distance.
+    /// The second press of the same key, which is where the original mod put it, and it is
+    /// said on its own rather than tacked onto the zombie list. It answers a different
+    /// question from the first press — not "what is coming down this row" but "what happens
+    /// if I let it through" — and the two do not belong in one sentence.
     /// </summary>
-    public static void ScanRowsWithZombies()
+    public static void AnnounceRowGuard()
     {
         if (!Lawn.IsOnBoard)
         {
@@ -113,75 +107,9 @@ public static class Sonar
             return;
         }
 
-        List<ZombieInfo> all = Collect(null);
-        if (all == null)
-        {
-            Speech.SayVerbatim(Strings.T("sonar.unreadable"), "sonar rows");
-            return;
-        }
+        if (!Lawn.TryGetPosition(out _, out int row)) return;
 
-        Tones.ClearPending();
-        PlayTones(all);
-
-        var rows = new SortedSet<int>();
-        foreach (ZombieInfo info in all) rows.Add(info.Row + 1);
-
-        // A ball crossing an otherwise empty row still makes that row a row you have to know
-        // about, so it counts here exactly as a zombie would.
-        int ballRow = Boss.BallRow(out _);
-        if (ballRow >= 0) rows.Add(ballRow + 1);
-
-        // An empty result after losing zombies is not a clear lawn. Checked before anything
-        // else is said, and instead of "all clear", never beside it.
-        if (rows.Count == 0 && LastSkipped > 0) { ReportSkipped("sonar rows"); return; }
-
-        var parts = new List<string>(2)
-        {
-            rows.Count == 0
-                ? Strings.T("sonar.all_clear")
-                : Strings.T("sonar.rows", string.Join(", ", rows)),
-        };
-
-        // Which lanes still have something at the end of them. This is what the key was
-        // missing: on an I, Zombie board with no zombies out it answered "Lawn clear" and
-        // said nothing about the brains, which are the only thing on that board worth
-        // knowing the position of.
-        string guarded = GuardedRows();
-        if (guarded != null) parts.Add(guarded);
-
-        Speech.SayVerbatim(string.Join(". ", parts), "sonar rows");
-        ReportSkipped("sonar rows");
-    }
-
-    /// <summary>
-    /// The rows that still have their last line of defence, or null when there is nothing
-    /// worth saying — every row guarded on an ordinary lawn is the normal state of affairs
-    /// and not news.
-    /// </summary>
-    private static string GuardedRows()
-    {
-        int count = Lawn.SafeRowCount();
-        if (count <= 0) return null;
-
-        var held = new List<int>();
-        for (int y = 0; y < count; y++)
-        {
-            if (Brains.IsIZombieLevel) { if (Brains.StandingIn(y)) held.Add(y + 1); }
-            else if (Lawn.RowHasMower(y)) held.Add(y + 1);
-        }
-
-        if (Brains.IsIZombieLevel)
-        {
-            return held.Count == 0
-                ? Strings.T("sonar.no_brains")
-                : Strings.T("sonar.brains", string.Join(", ", held));
-        }
-
-        if (held.Count == count) return null;   // everything still guarded: nothing to report
-
-        return held.Count == 0
-            ? Strings.T("sonar.no_mowers")
-            : Strings.T("sonar.mowers", string.Join(", ", held));
+        Speech.SayVerbatim(Lawn.LastLineOf(row), "row guard");
     }
 
     /// <summary>

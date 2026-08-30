@@ -14,22 +14,22 @@ namespace PvZRA11y.Gameplay;
 ///
 /// None of that reaches a player who cannot see it. The progress line the mod otherwise reads
 /// out on this key says "Wave 0 of 4, 0% complete" and goes on saying it for the entire level,
-/// because there are no waves here; the score that actually moves is the count of brains
-/// eaten. And a brain that has been eaten is not removed from the board — it is left in place
-/// with its state changed — so walking the leftmost column reported a brain in a row that had
-/// already been cleared, which is the worst kind of wrong: confident, and about the only thing
-/// that matters.
+/// because there are no waves here; the score that actually moves is the count of brains eaten.
 ///
-/// Read from the game's own grid items rather than from the score alone, because "three left"
-/// and "three left, in rows one, four and five" are different amounts of help.
+/// How many have gone and where the rest are come from two different places, and mixing them up
+/// is the trap. A brain chewed to nothing is killed and freed from the grid on the same update,
+/// so what is left on the board can say which rows still have one but can never say how many
+/// there were. The count comes from the challenge score, which both ways of losing a brain go
+/// through; the rows come from the board. A squished brain is the odd case that looks like both
+/// — already scored, still sitting there for a few seconds — and is counted as gone.
+///
+/// Rows matter as much as the count, because "three left" is worth little when the zombie being
+/// bought has to be dropped into one particular lane.
 /// </summary>
 public static class Brains
 {
     /// <summary>Brains sit at column zero, and nowhere else.</summary>
     private const int BrainColumn = 0;
-
-    private static int _lastEaten = -1;
-    private static bool _announcedWin;
 
     /// <summary>True on an I, Zombie level.</summary>
     public static bool IsIZombieLevel
@@ -41,53 +41,59 @@ public static class Brains
         }
     }
 
-    /// <summary>One brain: which row it is in, and whether it has been eaten.</summary>
-    public readonly record struct Brain(int Row, bool Eaten);
+    /// <summary>
+    /// How many brains the level starts with.
+    ///
+    /// A constant in the shipped code rather than a count of anything: I, Zombie always runs
+    /// on the five-row back yard and the win is scored against this number. It cannot be
+    /// derived by counting what is on the board, because a brain that has been eaten is taken
+    /// off it — see below.
+    /// </summary>
+    private const int Total = 5;
 
     /// <summary>
-    /// Every brain the level started with, in row order.
+    /// True while the brain in this row is still there to be eaten.
     ///
-    /// The eaten ones are kept rather than filtered out, so a caller can say how far through
-    /// the level the player is without having to be told the starting count separately.
+    /// Both of the ways a brain can go end with the item being freed, so its absence is the
+    /// answer as much as its state is. A squished one lingers a few seconds before it goes,
+    /// already scored, and must not be counted as still standing during them.
     /// </summary>
-    public static List<Brain> All()
-    {
-        var found = new List<Brain>();
-
-        Board board = Lawn.BoardRef;
-        if (board == null) return found;
-
-        int rows = Lawn.SafeRowCount();
-
-        for (int row = 0; row < rows; row++)
-        {
-            GridItem brain;
-            try { brain = board.GetGridItemAt(GridItemType.IZombieBrain, BrainColumn, row); }
-            catch { continue; }
-
-            if (brain == null) continue;
-
-            bool eaten = false;
-            try { eaten = brain.mGridItemState == GridItemState.BrainSquished; }
-            catch { /* an unreadable state is safer called uneaten than called done */ }
-
-            found.Add(new Brain(row, eaten));
-        }
-
-        return found;
-    }
-
-    /// <summary>True when the brain in this row is still there to be eaten.</summary>
     public static bool StandingIn(int row)
     {
-        foreach (Brain brain in All())
-            if (brain.Row == row) return !brain.Eaten;
+        Board board = Lawn.BoardRef;
+        if (board == null) return false;
 
-        return false;
+        GridItem brain;
+        try { brain = board.GetGridItemAt(GridItemType.IZombieBrain, BrainColumn, row); }
+        catch { return false; }
+
+        if (brain == null) return false;
+
+        try { return brain.mGridItemState != GridItemState.BrainSquished; }
+        catch { return true; }
     }
 
-    /// <summary>How many brains have been eaten, by the game's own count.</summary>
-    private static int Score()
+    /// <summary>The rows that still have a brain, counting from one.</summary>
+    public static List<int> RowsLeft()
+    {
+        var rows = new List<int>();
+
+        int count = Lawn.SafeRowCount();
+        for (int row = 0; row < count; row++)
+            if (StandingIn(row)) rows.Add(row + 1);
+
+        return rows;
+    }
+
+    /// <summary>
+    /// How many brains have gone, by the game's own count.
+    ///
+    /// This is the number to trust, and counting the board is not. A brain chewed to nothing
+    /// is killed and freed from the grid on the same update, so the items that remain say how
+    /// many are left but can never say how many there were. Both ways of losing one — chewed
+    /// and squished — score through the same place, so this covers both.
+    /// </summary>
+    private static int Eaten()
     {
         try
         {
@@ -105,63 +111,59 @@ public static class Brains
     /// </summary>
     public static string Describe()
     {
-        List<Brain> all = All();
-        if (all.Count == 0) return null;
+        List<int> rows = RowsLeft();
 
-        var standing = new List<int>();
-        foreach (Brain brain in all)
-            if (!brain.Eaten) standing.Add(brain.Row + 1);
+        int eaten = Eaten();
+        int left = eaten < 0 ? rows.Count : Total - eaten;
 
-        if (standing.Count == 0) return Strings.T("brains.none_left");
+        // The two ought to agree. When they do not, the score is believed and the difference
+        // goes in the log rather than into a sentence nobody can act on.
+        if (eaten >= 0 && left != rows.Count)
+            Core.Log.Msg($"[brains] the score says {left} left, the board shows {rows.Count}");
 
-        return Strings.T("brains.left", standing.Count, all.Count, string.Join(", ", standing));
+        if (left <= 0 && rows.Count == 0) return Strings.T("brains.none_left");
+
+        if (rows.Count == 0) return Strings.T("brains.left_unplaced", left, Total);
+
+        return Strings.T("brains.left", left, Total, string.Join(", ", rows));
     }
+
+    private static int _lastEaten = -1;
 
     /// <summary>
     /// Says when a brain goes, and when the last one does.
     ///
-    /// The game marks the moment with an animation and a sound, neither of which says which
-    /// row it happened in — and in a mode where the player is steering several zombies down
-    /// several lanes at once, which row was cleared is the whole of the news.
+    /// The game marks the moment with an animation and a sound, neither of which says how far
+    /// through the level that leaves you — and in a mode where the player is steering several
+    /// zombies down several lanes at once, one brain going is the only progress there is.
+    ///
+    /// Watched on the score rather than on the board, because a brain that has been eaten is
+    /// gone from the board and there is nothing left there to notice.
     /// </summary>
     public static void Tick()
     {
         if (!Lawn.IsOnBoard || !IsIZombieLevel) { Forget(); return; }
 
-        List<Brain> all = All();
-        if (all.Count == 0) return;
-
-        int eaten = 0;
-        foreach (Brain brain in all) if (brain.Eaten) eaten++;
+        int eaten = Eaten();
+        if (eaten < 0) return;
 
         if (_lastEaten < 0) { _lastEaten = eaten; return; }   // first look: nothing has changed yet
         if (eaten == _lastEaten) return;
 
-        // Going down would mean a level restarted under us. Follow it quietly rather than
+        // Going down means a level restarted under us. Follow it quietly rather than
         // announcing a brain that grew back.
-        if (eaten < _lastEaten) { _lastEaten = eaten; _announcedWin = false; return; }
+        if (eaten < _lastEaten) { _lastEaten = eaten; return; }
 
         _lastEaten = eaten;
 
-        int left = all.Count - eaten;
-        Core.Log.Msg($"[brains] {eaten} of {all.Count} eaten, {left} left");
+        int left = Math.Max(0, Total - eaten);
+        Core.Log.Msg($"[brains] {eaten} of {Total} eaten, {left} left");
 
-        if (left == 0)
-        {
-            if (_announcedWin) return;
-            _announcedWin = true;
-            Speech.Say(Strings.T("brains.all_eaten"), interrupt: true, context: "brains", allowRepeat: true);
-            return;
-        }
-
-        Speech.Say(Strings.T("brains.eaten", left), interrupt: false, context: "brains", allowRepeat: true);
+        Speech.Say(left == 0 ? Strings.T("brains.all_eaten") : Strings.T("brains.eaten", left),
+                   interrupt: false, context: "brains", allowRepeat: true);
     }
 
-    private static void Forget()
-    {
-        _lastEaten = -1;
-        _announcedWin = false;
-    }
+    private static void Forget() => _lastEaten = -1;
 
     /// <summary>The brains, for the self-test.</summary>
     public static void Dump(System.Text.StringBuilder sb)
@@ -171,10 +173,11 @@ public static class Brains
 
         if (!IsIZombieLevel) { sb.AppendLine(); return; }
 
-        sb.AppendLine($"  challenge score: {Score()}");
+        sb.AppendLine($"  eaten by score : {Eaten()} of {Total}");
 
-        foreach (Brain brain in All())
-            sb.AppendLine($"      row {brain.Row + 1}: {(brain.Eaten ? "eaten" : "still there")}");
+        int rows = Lawn.SafeRowCount();
+        for (int row = 0; row < rows; row++)
+            sb.AppendLine($"      row {row + 1}: {(StandingIn(row) ? "brain still there" : "no brain")}");
 
         sb.AppendLine();
     }

@@ -48,6 +48,7 @@ public static class Hotkeys
     private const long DoubleTapMs = 500;
 
     private static long _lastInfo1At = long.MinValue;
+    private static long _lastInfo3At = long.MinValue;
 
     /// <summary>Reads the configured keys. Call after Settings.Load and on preference reload.</summary>
     public static void Rebind()
@@ -239,13 +240,14 @@ public static class Hotkeys
                 return true;
             }
 
-            // Pressed twice quickly: which rows have anything in them at all. That is the
-            // question behind "where do I plant", and the per-row scan answers a different one.
+            // Pressed twice quickly: what is guarding this row - its mower, or in I, Zombie
+            // its brain. Same key and same order as the original mod, because a layout learned
+            // once should not have to be learned again for a second game.
             long now = Environment.TickCount64;
             bool second = now - _lastInfo1At < DoubleTapMs;
             _lastInfo1At = now;
 
-            if (second) Sonar.ScanRowsWithZombies();
+            if (second) Sonar.AnnounceRowGuard();
             else Sonar.ScanCurrentRow();
             return true;
         }
@@ -259,8 +261,20 @@ public static class Hotkeys
 
         if (Pressed(kb, _info3))
         {
-            if (onLawn) LawnInput.AnnounceSun();
+            if (onLawn)
+            {
+                // Coins on the first press, sun on the second, the way the original mod had
+                // it. Sun is the number asked for constantly, so it sits where a second press
+                // lands without waiting for the first answer to finish.
+                long now = Environment.TickCount64;
+                bool second = now - _lastInfo3At < DoubleTapMs;
+                _lastInfo3At = now;
+
+                if (second) LawnInput.AnnounceSun();
+                else LawnInput.AnnounceCoins();
+            }
             else Focus.ReadScreen();
+
             return true;
         }
 
