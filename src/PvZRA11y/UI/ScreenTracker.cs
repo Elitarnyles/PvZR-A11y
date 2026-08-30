@@ -40,6 +40,8 @@ public static class ScreenTracker
 
         if (!string.IsNullOrEmpty(id)) CurrentId = id;
 
+        TickPageDump();
+
         if (!string.IsNullOrEmpty(id) && id != _announcedId)
         {
             _announcedId = id;
@@ -113,6 +115,39 @@ public static class ScreenTracker
         if (string.IsNullOrWhiteSpace(id)) return;
         if (!string.IsNullOrEmpty(CurrentId)) return;
         CurrentId = id.Trim();
+    }
+
+    private static readonly HashSet<string> DumpedPages = new(StringComparer.Ordinal);
+    private static string _lastFrontForDump;
+    private static int _dumpIn;
+
+    /// <summary>
+    /// Writes out a main-menu page the first time it opens.
+    ///
+    /// Mini-Games, Puzzle and Survival open their panel correctly and then read as if nothing
+    /// happened, and there are two possible reasons that cannot be told apart from outside:
+    /// either the page's controls are attributed to the menu behind it, in which case there is
+    /// no panel to scope to, or they are on the page and something else is dropping them.
+    /// Guessing between those has cost this mod several rounds already.
+    ///
+    /// Late by a few frames, because these pages slide in and their controls are off the top
+    /// of the screen until they arrive.
+    /// </summary>
+    private static void TickPageDump()
+    {
+        string front = PanelScope.FrontPanelId;
+
+        if (front != _lastFrontForDump) { _lastFrontForDump = front; _dumpIn = 0; }
+        if (front is not ("minigames" or "puzzle" or "survival")) return;
+        if (DumpedPages.Contains(front)) return;
+
+        if (++_dumpIn < 45) return;
+
+        DumpedPages.Add(front);
+        Core.Log.Msg($"[screen] writing out the \"{front}\" page, to find where its controls live");
+
+        try { Diagnostics.Probe.DumpCurrentScreen(); }
+        catch (Exception ex) { Core.Log.Warning($"[screen] could not dump \"{front}\": {ex.Message}"); }
     }
 
     private static string Detect()
