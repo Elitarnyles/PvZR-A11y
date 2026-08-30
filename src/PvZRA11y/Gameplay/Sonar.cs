@@ -87,7 +87,7 @@ public static class Sonar
         Tones.ClearPending();
         PlayTones(found);
 
-        Speech.SayVerbatim(Compose(found), "sonar");
+        Speech.SayVerbatim(Compose(found, Boss.BallInRow(row)), "sonar");
         ReportSkipped("sonar");
     }
 
@@ -119,6 +119,11 @@ public static class Sonar
 
         var rows = new SortedSet<int>();
         foreach (ZombieInfo info in all) rows.Add(info.Row + 1);
+
+        // A ball crossing an otherwise empty row still makes that row a row you have to know
+        // about, so it counts here exactly as a zombie would.
+        int ballRow = Boss.BallRow(out _);
+        if (ballRow >= 0) rows.Add(ballRow + 1);
 
         if (rows.Count == 0)
         {
@@ -245,9 +250,22 @@ public static class Sonar
     }
 
     /// <summary>Builds the terse line: count, then each zombie, column letter only when it changes.</summary>
-    private static string Compose(List<ZombieInfo> found)
+    private static string Compose(List<ZombieInfo> found) => Compose(found, null);
+
+    /// <summary>
+    /// The row read aloud, with anything else crossing it.
+    ///
+    /// Dr Zomboss's fireball and iceball are not zombies and are not projectiles either, so
+    /// the sonar walked straight past them - on the one level where what is coming at you is
+    /// mostly not a zombie. They are named first, before the count, because a ball crossing
+    /// your row outranks anything walking down it.
+    /// </summary>
+    private static string Compose(List<ZombieInfo> found, string crossing)
     {
-        if (found.Count == 0) return Strings.T("sonar.none");
+        if (found.Count == 0)
+            return crossing == null ? Strings.T("sonar.none") : crossing;
+
+        if (crossing != null) return crossing + ". " + Compose(found, null);
 
         // Nearest the house first: that is the order they matter in.
         found.Sort((a, b) => a.PosX.CompareTo(b.PosX));

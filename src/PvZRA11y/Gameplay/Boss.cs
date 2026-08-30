@@ -178,6 +178,46 @@ public static class Boss
             Speech.Say(line, interrupt: true, context: "boss", allowRepeat: true);
     }
 
+    /// <summary>
+    /// The row a ball is crossing right now, or -1.
+    ///
+    /// The row is the whole of what can be said about it. In the 2009 game the ball's
+    /// position lives in the animation's overlay matrix, and Replanted does not expose that -
+    /// so there is no column to give, and inventing one would be worse than leaving it out.
+    /// Which row it is in is what decides whether the player has to act.
+    /// </summary>
+    public static int BallRow(out bool fire)
+    {
+        fire = false;
+
+        Zombie boss = Find();
+        if (boss == null) return NoRow;
+
+        try
+        {
+            int row = boss.mFireballRow;
+            if (row < 0) return NoRow;
+
+            // The row stays set after the ball has gone by, so the animation is what says
+            // whether there is still something crossing the lawn.
+            Reanimation ball = boss.mBossFireball;
+            if (ball == null) return NoRow;
+            try { if (ball.mDead) return NoRow; } catch { }
+
+            fire = boss.mIsFireBall;
+            return row;
+        }
+        catch { return NoRow; }
+    }
+
+    /// <summary>What a ball in flight is called, or null when there is none in this row.</summary>
+    public static string BallInRow(int row)
+    {
+        int at = BallRow(out bool fire);
+        if (at < 0 || at != row) return null;
+        return Strings.T(fire ? "boss.ball_fire" : "boss.ball_ice");
+    }
+
     /// <summary>What the boss is up to right now, for the key that asks.</summary>
     public static string Describe()
     {

@@ -159,6 +159,11 @@ moment:
 **F4** asks the same question at any time: what he is about to throw, at which row, and how
 much of him is left.
 
+A ball already crossing the lawn is part of the row scan, the way a zombie is. **F1** on the
+row it is in names it first, before the count of zombies, and pressed twice it lists that row
+among the rows with something in them - a ball crossing an otherwise empty row still makes
+that row one you need to know about.
+
 ### Choosing plants before a level
 
 - **Left** and **Right** — one plant at a time. **Up** and **Down** — a row of eight.

@@ -115,6 +115,8 @@ public static class Strings
         ["boss.bungees"] = "Bungee zombies dropping.",
         ["boss.rv"] = "Dropping a machine.",
         ["boss.spawning"] = "Sending zombies.",
+        ["boss.ball_fire"] = "Fireball",
+        ["boss.ball_ice"] = "Iceball",
         ["boss.health"] = "{0} percent left",
         ["boss.quiet"] = "Dr Zomboss is doing nothing right now.",
         ["boss.none"] = "No boss here.",
