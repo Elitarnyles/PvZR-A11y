@@ -51,6 +51,7 @@ public static class SelfTest
         Section(sb, "zen garden", Gameplay.Garden.Dump);
         Section(sb, "challenge pages", UI.Challenges.Dump);
         Section(sb, "boss", Gameplay.Boss.Dump);
+        Section(sb, "brains", Gameplay.Brains.Dump);
         Section(sb, "notes", Gameplay.Notes.Check);
         Section(sb, "panels", CheckPanels);
         Section(sb, "pause", CheckPause);

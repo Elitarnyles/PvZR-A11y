@@ -268,11 +268,17 @@ public static class Hotkeys
         {
             if (onLawn)
             {
-                // On the last level the usual progress line has nothing to say - there are no
-                // waves to be part of the way through. What matters there is the boss: what he
-                // is about to throw, at which row, and how much of him is left.
+                // Two levels answer this question with something other than waves.
+                //
+                // On the last one there is a boss, and what matters is what he is about to
+                // throw, at which row, and how much of him is left. In I, Zombie there are no
+                // waves at all - the meter fills with brains eaten - so the usual line said
+                // "Wave 0 of 4" for the whole level and meant nothing by it.
                 string boss = Boss.Describe();
+                string brains = boss == null && Brains.IsIZombieLevel ? Brains.Describe() : null;
+
                 if (boss != null) Speech.SayVerbatim(boss, "boss");
+                else if (brains != null) Speech.SayVerbatim(brains, "brains");
                 else LawnInput.AnnounceProgress();
             }
             else Focus.ReadScreen();

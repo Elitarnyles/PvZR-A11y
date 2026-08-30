@@ -1001,11 +1001,24 @@ public static class Lawn
         {
             GridItemType type = GridItems[i];
 
-            try
-            {
-                if (_board.GetGridItemAt(type, x, y) == null) continue;
-            }
+            GridItem item;
+            try { item = _board.GetGridItemAt(type, x, y); }
             catch { continue; }
+
+            if (item == null) continue;
+
+            // An eaten brain is not taken off the board - it is left where it was with its
+            // state changed. Reporting it as a brain told the player there was still one to
+            // go in a row they had already cleared, which is the one square on an I, Zombie
+            // lawn where a wrong answer costs a whole run.
+            if (type == GridItemType.IZombieBrain)
+            {
+                bool eaten = false;
+                try { eaten = item.mGridItemState == GridItemState.BrainSquished; }
+                catch { }
+
+                if (eaten) return Strings.T("lawn.item.BrainEaten");
+            }
 
             string key = "lawn.item." + type;
             return Strings.Has(key) ? Strings.T(key) : UiText.Prettify(type.ToString());

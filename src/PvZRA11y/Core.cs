@@ -112,6 +112,7 @@ public class Core : MelonMod
         ("pad",          Input.VirtualPad.Tick),
         ("tripwire",     Gameplay.Sonar.TickTripwire),
         ("boss",         Gameplay.Boss.Tick),
+        ("brains",       Gameplay.Brains.Tick),
         ("tones",        Tones.Pump),
         ("speech",       Speech.Pump),
     };
