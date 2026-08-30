@@ -61,6 +61,36 @@ public static class UiText
     }
 
     /// <summary>The control's name, without role or state.</summary>
+    /// <summary>
+    /// Adds a sentence to the handful of labels that are a single word and a decision.
+    ///
+    /// The game has controls whose whole label is one word that says nothing about what
+    /// pressing them does. A sighted player has the picture, the position on the screen and
+    /// the moment it appears to go on; read out on its own the word is just a word. "Harder"
+    /// at the end of the credits is the clear case: it decides whether your next run through
+    /// Adventure has ten extra waves on every level, and there is nothing in the label to
+    /// suggest that.
+    ///
+    /// Matched against the game's own text rather than against the English word, so it keeps
+    /// working in a language neither of us reads.
+    /// </summary>
+    private static string Explain(string label)
+    {
+        if (string.IsNullOrEmpty(label)) return label;
+
+        try
+        {
+            string harder = A11y.GameText.Resolve("$HARDMODE");
+            if (!string.IsNullOrEmpty(harder)
+                && label.Trim().TrimEnd('?').Equals(harder.Trim().TrimEnd('?'),
+                                                     StringComparison.OrdinalIgnoreCase))
+                return Strings.T("ui.hint.harder", label);
+        }
+        catch { /* an explanation is a courtesy; the label still stands */ }
+
+        return label;
+    }
+
     public static string GetLabel(Selectable selectable)
     {
         if (selectable == null) return null;
@@ -85,7 +115,7 @@ public static class UiText
 
         string text = ReadAnyText(selectable);
         if (!string.IsNullOrWhiteSpace(text))
-            return Collapse(text);
+            return Explain(Collapse(text));
 
         // Nothing readable in the hierarchy. Make the object name pronounceable.
         string pretty = Prettify(objectName);
