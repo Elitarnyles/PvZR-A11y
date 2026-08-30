@@ -114,6 +114,17 @@ public static class ModelText
         }
         catch { }
 
+        // Booleans were the gap. Every flag on a challenge tile - locked, beaten, whether to
+        // show a streak - is a BoolValueModel, and none of the three casts above catches one,
+        // so a screen full of locked entries read back as a screen with nothing locked on it.
+        // A missing answer and a false one look identical to a caller that only has a string.
+        try
+        {
+            BoolValueModel flag = model.TryCast<BoolValueModel>();
+            if (flag != null) return flag.OnToDisplayString();
+        }
+        catch { }
+
         return null;
     }
 

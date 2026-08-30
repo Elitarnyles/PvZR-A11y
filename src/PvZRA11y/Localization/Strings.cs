@@ -516,6 +516,7 @@ public static class Strings
         ["zombie.BackupDancer"] = "Backup dancer",
         ["zombie.DuckyTube"] = "Ducky tube zombie",
         ["zombie.Snorkel"] = "Snorkel zombie",
+        ["zombie.Bobsled"] = "Bobsled team",
         ["zombie.Zamboni"] = "Zamboni",
         ["zombie.DolphinRider"] = "Dolphin rider",
         ["zombie.JackInTheBox"] = "Jack-in-the-box zombie",
@@ -530,6 +531,21 @@ public static class Strings
         ["zombie.Imp"] = "Imp",
         ["zombie.Boss"] = "Doctor Zomboss",
         ["zombie.Yeti"] = "Yeti zombie",
+
+        // The plant-headed zombies of ZomBotany. Named after the head rather than
+        // after the plant, because the short form drops a trailing "zombie" and
+        // "Peashooter" alone would be the very plant the player just put down.
+        ["zombie.PeaHead"] = "Pea-head zombie",
+        ["zombie.GatlingHead"] = "Gatling-head zombie",
+        ["zombie.WallnutHead"] = "Wall-nut-head zombie",
+        ["zombie.TallnutHead"] = "Tall-nut-head zombie",
+        ["zombie.SquashHead"] = "Squash-head zombie",
+        ["zombie.JalapenoHead"] = "Jalapeno-head zombie",
+
+        ["zombie.Zombatar"] = "Zombatar",
+        ["zombie.Target"] = "Target zombie",
+        ["zombie.TrashCan"] = "Trash can zombie",
+        ["zombie.Gravestone"] = "Gravestone zombie",
 
         // -- Labels for controls the game ships without readable text --------
         // Verified object names, translated from the reconnaissance in

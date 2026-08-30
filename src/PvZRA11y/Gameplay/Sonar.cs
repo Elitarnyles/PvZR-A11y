@@ -554,10 +554,21 @@ public static class Sonar
     internal static bool LastCollectFailed;
 
 
+    /// <summary>Types met that have no name of their own. Logged once each, never twice.</summary>
+    private static readonly HashSet<ZombieType> Unnamed = new();
+
     public static string ZombieName(ZombieType type)
     {
         string key = "zombie." + type;
-        return Strings.Has(key) ? Strings.T(key) : UI.UiText.Prettify(type.ToString());
+        if (Strings.Has(key)) return Strings.T(key);
+
+        // A type with no entry still reads as words, but it is worth knowing about: the mod
+        // met a zombie the string table has never heard of, which on a mini-game is exactly
+        // where an unfamiliar one would turn up.
+        if (Unnamed.Add(type))
+            Core.Log.Warning($"[sonar] no name for zombie type {type}; saying \"{UI.UiText.Prettify(type.ToString())}\"");
+
+        return UI.UiText.Prettify(type.ToString());
     }
 
 }

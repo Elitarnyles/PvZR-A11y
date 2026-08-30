@@ -384,6 +384,64 @@ public static class Challenges
         return value != null && value.Equals("True", StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>
+    /// The entry model a tile is drawn from, or null.
+    ///
+    /// Asking the binder for a child by name hands back a value model, and a boolean arrives
+    /// as one of those - true or false buried in a display string. The model the tile is
+    /// bound to carries the same two facts as the booleans they are, and the button as a
+    /// button, so it is asked for whole. Reached by the container's own absolute key, which
+    /// it will work out itself; counting siblings would break the moment a page filtered
+    /// what it showed.
+    /// </summary>
+    private static Il2CppReloaded.DataModels.LevelEntryModel EntryModel(UnityEngine.Transform tile)
+    {
+        Il2CppTekly.DataModels.Binders.BinderContainer container;
+        try { container = tile.GetComponentInChildren<Il2CppTekly.DataModels.Binders.BinderContainer>(); }
+        catch { return null; }
+
+        if (container == null) return null;
+
+        try
+        {
+            string key = container.ResolveFullKey();
+            if (string.IsNullOrEmpty(key)) return null;
+
+            Il2CppTekly.DataModels.Models.RootModel root = Il2CppTekly.DataModels.Models.RootModel.Instance;
+            if (root == null) return null;
+
+            Il2CppTekly.DataModels.Models.IModel model = null;
+            if (!root.TryGetModel(key, out model) || model == null) return null;
+
+            return model.TryCast<Il2CppReloaded.DataModels.LevelEntryModel>();
+        }
+        catch (Exception ex)
+        {
+            if (Config.Settings.VerboseLogging.Value)
+                Core.Log.Msg($"[challenges] no entry model behind a tile ({ex.Message})");
+
+            return null;
+        }
+    }
+
+    /// <summary>Whether a tile is locked and whether it has been beaten.</summary>
+    private static (bool Locked, bool Beaten) StateOf(UnityEngine.Transform tile)
+    {
+        Il2CppReloaded.DataModels.LevelEntryModel entry = EntryModel(tile);
+
+        if (entry != null)
+        {
+            bool locked = false;
+            bool beaten = false;
+            try { locked = entry.Locked; } catch { }
+            try { beaten = entry.Completed; } catch { }
+            return (locked, beaten);
+        }
+
+        // The flags off the binder, for a tile whose model could not be reached.
+        return (TileFlag(tile, "*.locked"), TileFlag(tile, "*.completed"));
+    }
+
     /// <summary>What to say about one tile, from the model that draws it.</summary>
     private static string DescribeTile(UnityEngine.Transform tile, int index, int count)
     {
@@ -392,8 +450,9 @@ public static class Challenges
         string name = ReadTile(tile, "*.name");
         parts.Add(GameText.ResolveOrKeep(name) ?? Strings.T("msg.unlabelled"));
 
-        if (TileFlag(tile, "*.locked")) parts.Add(Strings.T("challenges.locked"));
-        if (TileFlag(tile, "*.completed")) parts.Add(Strings.T("challenges.beaten"));
+        (bool locked, bool beaten) = StateOf(tile);
+        if (locked) parts.Add(Strings.T("challenges.locked"));
+        if (beaten) parts.Add(Strings.T("challenges.beaten"));
 
         if (TileFlag(tile, "*.showLongestStreak"))
         {
@@ -403,6 +462,36 @@ public static class Challenges
 
         parts.Add(Strings.T("challenges.position", index + 1, count));
         return string.Join(", ", parts);
+    }
+
+    /// <summary>
+    /// Writes the page to the log the first time it is walked.
+    ///
+    /// What a tile says about itself and what the mod makes of it are two different things,
+    /// and when they disagree the player hears only the second. This puts both in the log by
+    /// itself, so a wrong answer can be traced without asking anyone to press a diagnostic
+    /// key at the right moment.
+    /// </summary>
+    private static ChallengeEntryType _loggedTilesFor = ChallengeEntryType.None;
+
+    private static void LogTilesOnce(List<UnityEngine.Transform> tiles, int columns)
+    {
+        ChallengeEntryType page = Page();
+        if (page == _loggedTilesFor) return;
+        _loggedTilesFor = page;
+
+        Core.Log.Msg($"[challenges] {PageName()}: {tiles.Count} tiles on screen, {columns} across");
+
+        for (int i = 0; i < tiles.Count; i++)
+        {
+            string name = ReadTile(tiles[i], "*.name") ?? "?";
+            bool model = EntryModel(tiles[i]) != null;
+            (bool locked, bool beaten) = StateOf(tiles[i]);
+
+            Core.Log.Msg($"[challenges]   {i + 1}. {name}" +
+                         $" locked={locked} beaten={beaten}" +
+                         $" (from {(model ? "the entry model" : "the binder")})");
+        }
     }
 
     /// <summary>Walks the mod's own cursor across the tiles and says what it lands on.</summary>
@@ -416,6 +505,8 @@ public static class Challenges
             Speech.Say(Strings.T("challenges.empty", PageName()), context: "challenges");
             return true;
         }
+
+        LogTilesOnce(tiles, columns);
 
         int step = dx + dy * columns;
         int target = _cursor + step;
@@ -447,7 +538,7 @@ public static class Challenges
         UnityEngine.Transform tile = tiles[_cursor];
         string name = GameText.ResolveOrKeep(ReadTile(tile, "*.name")) ?? "?";
 
-        if (TileFlag(tile, "*.locked"))
+        if (StateOf(tile).Locked)
         {
             // Said rather than tried: the game would refuse anyway, and "Locked" with the
             // name is more useful than whatever its refusal looks like.
@@ -459,9 +550,14 @@ public static class Challenges
         Il2CppTekly.DataModels.Models.ButtonModel button = null;
         try
         {
-            var container = tile.GetComponentInChildren<Il2CppTekly.DataModels.Binders.BinderContainer>();
-            if (container != null && container.TryGet("*.select", out Il2CppTekly.DataModels.Models.IModel model))
-                button = model?.TryCast<Il2CppTekly.DataModels.Models.ButtonModel>();
+            button = EntryModel(tile)?.m_selectButtonModel;
+
+            if (button == null)
+            {
+                var container = tile.GetComponentInChildren<Il2CppTekly.DataModels.Binders.BinderContainer>();
+                if (container != null && container.TryGet("*.select", out Il2CppTekly.DataModels.Models.IModel model))
+                    button = model?.TryCast<Il2CppTekly.DataModels.Models.ButtonModel>();
+            }
         }
         catch (Exception ex)
         {
@@ -517,6 +613,7 @@ public static class Challenges
         _entriesFor = ChallengeEntryType.None;
         _cursorFor = ChallengeEntryType.None;
         _cursor = 0;
+        _loggedTilesFor = ChallengeEntryType.None;
         _user = null;
         _reportedUserRoute = false;
     }
