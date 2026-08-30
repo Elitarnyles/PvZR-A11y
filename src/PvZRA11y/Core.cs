@@ -31,7 +31,7 @@ public class Core : MelonMod
     /// attribute argument has to be a compile-time constant. Keep the Version property in
     /// PvZRA11y.csproj in step with it; that one is MSBuild's and cannot read this.
     /// </summary>
-    public const string Version = "0.1.0";
+    public const string Version = "1.0.0";
 
     /// <summary>Shown to every user in the MelonLoader log, so it has to be a real address.</summary>
     public const string Homepage = "https://github.com/Elitarnyles/PvZR-A11y";

@@ -1,8 +1,59 @@
 # Changelog
 
-## 0.1.0 — unreleased
+## 1.0.0 — 2026-08-30
 
-First public version. Everything below is new.
+First release. Adventure mode has been played from the first level to Dr Zomboss on a keyboard
+by a blind player, which is the whole of what this version claims.
+
+Everything below is new.
+
+### The last level
+
+- Dr Zomboss says what he is about to do, at the moment he decides it rather than when it
+  lands: a fireball or an iceball with the row it is aimed at, which row he is about to stomp,
+  and when bungees, a machine or a wave are on their way. The row is picked at random each
+  time, so there is nothing to learn and no way to plan around it without being told.
+- A ball already crossing the lawn is part of the row scan, named before the count of zombies.
+  Pressed twice, the scan lists its row among the rows worth knowing about — a ball crossing an
+  otherwise empty row used to answer "all clear".
+- F4, which reports progress through the waves on an ordinary level, asks about the boss here.
+  There are no waves on that level for it to report.
+
+### The Zen Garden
+
+- The garden reads as a grid of pots: what is planted, how grown it is, and what it wants.
+- Tools are stepped through with minus, equals and the digits, and used with Enter, following
+  the original PvZ accessibility mod. The list is built from what the game says you can use, so
+  it stays right as you buy things.
+- A night plant left in the main garden and a water plant left out of the aquarium are asleep
+  and will never ask for anything. They say so, rather than reading as contented.
+- Stinky, selling, the glove and the wheelbarrow, and moving between the three gardens.
+- The shop, the way out and the tool row answer only to a controller in this game — not one
+  keyboard binding exists in the garden's whole action map. The mod adds a controller that no
+  hardware backs for the length of a press, then hands the controls straight back to the
+  keyboard, because a screen built for a controller has nothing on it a keyboard can reach.
+
+### Mini-games
+
+- Vase Breaker: vases read as vases and say what was inside once broken; the plants they drop
+  are picked up from the ground with Enter, the cycle keys or the digits, since those levels
+  have no deck to put them in.
+- Whack a Zombie: the mallet.
+
+### Fixed
+
+- Rows were read wrongly on roof levels, and worse the further along the lawn you were. The
+  roof slopes, and every row was being measured at the first column — the one place the old
+  reading was right. Replaying the game's own formulas over all forty-five roof squares: thirty
+  two were wrong, and none are now.
+- The coin total was a tenth of the truth. The game counts money in units of ten and multiplies
+  only when it draws the number.
+- Digging while holding a plant killed that plant for the rest of the level.
+- Crazy Dave's conversations are advanced by whichever screen owns them. Three different
+  screens have a method of that name and each does something the others do not — one lays out
+  the next Vase Breaker stage, one hands over your first two garden plants.
+
+
 
 ### Menus
 

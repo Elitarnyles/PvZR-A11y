@@ -9,7 +9,7 @@
     <RootNamespace>PvZRA11y</RootNamespace>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
-    <Version>0.1.0</Version>
+    <Version>1.0.0</Version>
     <!-- Interop assemblies are full of fields we never assign; that is normal here. -->
     <NoWarn>$(NoWarn);CS0649;CS0169;CS0414</NoWarn>
   </PropertyGroup>

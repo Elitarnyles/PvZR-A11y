@@ -12,11 +12,16 @@ Everything the mod tells you, it says in words. A few optional tones exist, and 
 them repeats something that was also spoken — turn them all off and you lose the redundancy,
 not the information.
 
-**Status: version 0.1.0, playable and unfinished.** Menus, choosing a player, level select, the
-plant chooser, the lawn, planting, digging, the seed bank, the zombie scan, Crazy Dave's
-conversations and the things he sells during them, the zombies' notes, the Suburban Almanac,
-Crazy Dave's shop, winning and the reward afterwards are all done and play-tested by a blind
-player. Still missing: the Zen Garden, and every mini-game except Whack a Zombie.
+**Status: version 1.0.0.** The whole of Adventure mode has been played through from the first level to Dr Zomboss, on a keyboard, by a blind player. That is what this version claims and nothing more: the main path works end to end.
+
+Done and played through: menus, choosing a player, level select, the plant chooser, the lawn,
+planting, digging, the seed bank, the zombie scan, Crazy Dave's conversations and the things he
+sells during them, the zombies' notes, the Suburban Almanac, the shop, the roof levels, Whack a
+Zombie, Vase Breaker, the Zen Garden with all three of its gardens, the final fight with Dr
+Zomboss, winning and the reward afterwards.
+
+Not done: the puzzle modes, Survival, the Tree of Wisdom, and the mini-games other than Whack a
+Zombie and Vase Breaker. They are reachable but not narrated, so expect to be lost in them.
 
 Menus came first on purpose: reading the lawn is worth nothing if you cannot reach a level to
 stand on.
@@ -62,7 +67,7 @@ If the mod stops loading after an update, suspect that first.
    accessibility mod may have put them there — leave the existing ones alone.
 4. Start your screen reader, then start the game.
 
-You should hear "Accessibility mod version 0.1.0 ready." within a few seconds of the game window
+You should hear "Accessibility mod version 1.0.0 ready." within a few seconds of the game window
 appearing.
 
 If you have another accessibility mod for this game installed, remove it first. Two mods talking
