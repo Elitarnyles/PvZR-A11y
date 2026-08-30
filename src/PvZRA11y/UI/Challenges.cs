@@ -103,8 +103,23 @@ public static class Challenges
         Core.Log.Msg($"[challenges] reached the game through {where}");
     }
 
+    /// <summary>
+    /// The level data, from the one place that has it without a game in progress.
+    ///
+    /// The activity found in the menu is real but its injected services are not filled in
+    /// until a game starts, so asking it for the data returned nothing and the page listed
+    /// nought entries. ReloadedUtils carries the same service as a static, which is what the
+    /// game itself uses from screens that are not a level.
+    /// </summary>
     private static IDataService Data()
     {
+        try
+        {
+            IDataService global = Il2CppSource.Utils.ReloadedUtils.DataService;
+            if (global != null) return global;
+        }
+        catch { /* fall back to the activity */ }
+
         try { return Activity()?.m_dataService; }
         catch { return null; }
     }
@@ -148,7 +163,11 @@ public static class Challenges
                 // is asked for that and the failure is logged rather than guessed at.
                 var list = all?.TryCast<Il2CppSystem.Collections.Generic.List<LevelEntryData>>();
 
-                if (list == null)
+                if (all == null)
+                {
+                    Core.Log.Warning("[challenges] no level data: the game would not hand any over");
+                }
+                else if (list == null)
                 {
                     Core.Log.Warning("[challenges] the level data is not a list this mod can read");
                 }

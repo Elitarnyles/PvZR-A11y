@@ -87,7 +87,13 @@ public static class VirtualPad
     {
         try
         {
-            var service = Gameplay.Lawn.AppRef?.InputService;
+            // The lawn's activity only exists during a level; these presses happen in menus
+            // too, so the scene is asked as well before giving up.
+            var app = Gameplay.Lawn.AppRef
+                   ?? UnityEngine.Object.FindObjectOfType<
+                          Il2CppReloaded.TreeStateActivities.GameplayActivity>();
+
+            var service = app?.InputService;
             return service == null ? "unknown" : service.CurrentControlType.ToString();
         }
         catch { return "unknown"; }
