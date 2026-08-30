@@ -131,7 +131,30 @@ public static class PanelScope
     /// The panel in front, tracked from the game's own show and hide notifications rather
     /// than recomputed, so it is accurate every frame without costing anything.
     /// </summary>
-    public static string FrontPanelId => Open.Count == 0 ? null : Open[^1];
+    public static string FrontPanelId
+    {
+        get
+        {
+            if (Open.Count == 0) return null;
+
+            string front = Open[^1];
+
+            // A parent panel that re-announces itself must not take the front away from its
+            // own open page. The main menu does exactly that: choosing Mini-Games opens the
+            // minigames panel and then says the main menu is shown again, one millisecond
+            // later - so "the last panel to appear" named the menu, the mod went on reading
+            // the menu behind the page, and three whole game modes looked like buttons that
+            // did nothing when pressed.
+            for (int i = Open.Count - 2; i >= 0; i--)
+            {
+                string page = Open[i];
+                if (ParentPanels.TryGetValue(page, out string parent) && parent == front)
+                    return page;
+            }
+
+            return front;
+        }
+    }
 
     /// <summary>The id of the panel the player is currently working in, or null.</summary>
     public static string TopPanelId { get; private set; }
@@ -161,6 +184,13 @@ public static class PanelScope
         ["almanacPlants"] = "almanac",
         ["almanacZombies"] = "almanac",
         ["almanacArchive"] = "almanac",
+
+        // The main menu's mode pages. Each slides in over the menu and leaves the menu's own
+        // buttons - the way back out - reachable behind it, which is the same shape as the
+        // almanac and wants the same treatment.
+        ["minigames"] = "mainMenu",
+        ["puzzle"] = "mainMenu",
+        ["survival"] = "mainMenu",
     };
 
     private static List<Selectable> ScopeToTopPanel(List<Selectable> controls)
