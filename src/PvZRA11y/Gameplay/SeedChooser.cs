@@ -61,6 +61,20 @@ public static class SeedChooser
     ///
     /// Every level in the game carries its own hand-picked set. Nothing needs deriving.
     ///
+    /// That holds for adventure mode. It does not hold anywhere else, and the mini-games are
+    /// where it breaks worst. Every challenge, puzzle and survival stage has its zombies
+    /// chosen by the challenge code rather than by the level table, and the table then still
+    /// says "Zombie" and nothing more. Measured on ZomBotany: the level's own list declared
+    /// Normal alone, while the board's allowed list held Pea-head and Wall-nut-head — and
+    /// those two are exactly what then walked onto the lawn. A screen whose entire purpose is
+    /// to say what is coming was announcing the one thing that was not the point of the level.
+    ///
+    /// So the board's own allowed list is believed outside adventure mode and not inside it.
+    /// Both halves of that come from the same place in the shipped code: Board.InitZombieWaves
+    /// fills the array from the hand-written per-mode list for a challenge, and from
+    /// CanZombieSpawnOnLevel for an adventure level — and the derived answer is the one this
+    /// mod already found over-reports, offering Cone-heads on a level that sends none.
+    ///
     /// The other sources are still asked, and still logged, but no longer believed. Two of
     /// them return a subset of the level's list and two return something else entirely —
     /// GetIntroducedZombieType answers Pail on level 8, which is what sent this astray, and
@@ -107,26 +121,33 @@ public static class SeedChooser
             return true;
         }));
 
+        var ignored = new HashSet<ZombieType>();
+
+        // The board's own allowed list, which is the authored one for a challenge and a
+        // derived one for an adventure level. Believed in the first case and only logged in
+        // the second — see the note above the method for why the two differ.
+        bool authored = false;
+        try { authored = app != null && !app.IsAdventureMode(); } catch { /* treat as adventure */ }
+
+        string allowed = Gather("allowed", authored ? candidates : ignored, add =>
+        {
+            var flags = board?.mZombieAllowed;
+            if (flags == null) return false;
+            for (int i = 0; i < flags.Length && i < TypeCount; i++)
+                if (flags[i]) add((ZombieType)i);
+            return true;
+        });
+
+        sources.Add(authored ? allowed : "(not spoken) " + allowed);
+
         // --- logged only ------------------------------------------------------------
         // Kept because a disagreement here is worth seeing. Deliberately not merged in:
-        // the first two answer with a subset, and the last two with something that is not
-        // this question.
-
-        var ignored = new HashSet<ZombieType>();
+        // one answers with a subset, and the other with something that is not this question.
 
         sources.Add("(not spoken) " + Gather("can spawn", ignored, add =>
         {
             if (board == null) return false;
             ForEachType(t => { if (board.CanZombieSpawnOnLevel(t, levelNumber)) add(t); });
-            return true;
-        }));
-
-        sources.Add("(not spoken) " + Gather("allowed", ignored, add =>
-        {
-            var allowed = board?.mZombieAllowed;
-            if (allowed == null) return false;
-            for (int i = 0; i < allowed.Length && i < TypeCount; i++)
-                if (allowed[i]) add((ZombieType)i);
             return true;
         }));
 
@@ -148,7 +169,8 @@ public static class SeedChooser
             string title = "?";
             try { title = level?.FullLevelName ?? "?"; } catch { }
 
-            Core.Log.Msg($"[chooser] zombies for \"{title}\" (mLevel {levelNumber})");
+            Core.Log.Msg($"[chooser] zombies for \"{title}\" (mLevel {levelNumber}," +
+                         $" {(authored ? "a challenge, so the allowed list counts" : "adventure, so it does not")})");
             foreach (string line in sources) Core.Log.Msg("[chooser]   " + line);
             Core.Log.Msg($"[chooser]   spoken ({names.Count}): {string.Join(", ", names)}");
         }

@@ -1088,6 +1088,23 @@ public static class Lawn
     /// </summary>
     public static string PlantName(SeedType seed)
     {
+        // In I, Zombie the packets hold zombies, and the enum keeps the names they were given
+        // in the level editor: "Zombie Pail" for the thing the rest of the game, the almanac
+        // and this mod's own row scan all call a Bucket-head. One player, two words for one
+        // zombie, in the one mode where knowing which zombie you are buying is the whole game.
+        //
+        // The conversion is the game's own, so a packet the mod has never heard of still comes
+        // out under the name everything else uses.
+        if (seed >= SeedType.ZombieNormal && seed < SeedType.LastZombieIndex)
+        {
+            try
+            {
+                ZombieType zombie = Challenge.IZombieSeedTypeToZombieType(seed);
+                if (zombie != ZombieType.Invalid) return Sonar.ZombieName(zombie);
+            }
+            catch { /* fall through to the seed's own name */ }
+        }
+
         string key = "plant." + seed;
         return Strings.Has(key) ? Strings.T(key) : UiText.Prettify(seed.ToString());
     }
