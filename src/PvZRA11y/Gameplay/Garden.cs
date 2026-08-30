@@ -689,17 +689,88 @@ public static class Garden
 
         try
         {
-            Core.Log.Msg($"[garden] placing what is in hand on slot {slot.Index + 1}" +
-                         $" at pixel {slot.PixelX},{slot.PixelY}");
+            (int px, int py) = DropPixelFor(slot);
 
-            Board.MouseDown(slot.PixelX, slot.PixelY, 1, Player);
-            Board.MouseUp(slot.PixelX, slot.PixelY, 1, Player);
+            Core.Log.Msg($"[garden] placing what is in hand on slot {slot.Index + 1}" +
+                         $" (grid {slot.GridX},{slot.GridY}) at pixel {px},{py}");
+
+            Board.MouseDown(px, py, 1, Player);
+            Board.MouseUp(px, py, 1, Player);
             return true;
         }
         catch (Exception ex)
         {
             Core.Log.Warning($"[garden] could not put the plant down: {ex.Message}");
             return false;
+        }
+    }
+
+    /// <summary>
+    /// Where to click so a carried plant lands on the slot you meant.
+    ///
+    /// Not the slot's own pixel, which is what this used to send and is wrong. Putting a plant
+    /// down does not go through the position the way picking one up does: the game shifts the
+    /// click before working out which square you meant, and in the greenhouse - which is the
+    /// main garden - it shifts it twenty-five pixels. The slot's stored pixel is the top-left
+    /// corner of its box, so shifting it moves the point off the box entirely and the game
+    /// gets no square at all from it. What the player saw was a plant that would not go where
+    /// it was put.
+    ///
+    /// So the pixel is not computed, it is asked for. The game will say which square any
+    /// candidate would plant on, given what is in hand - the offset is different per plant and
+    /// per garden - and the answer that matches the slot is the one to click. That survives
+    /// whatever the offsets turn out to be, here or in a garden not yet seen.
+    /// </summary>
+    private static (int X, int Y) DropPixelFor(Slot slot)
+    {
+        Board board = Board;
+        if (board == null) return (slot.PixelX, slot.PixelY);
+
+        SeedType held;
+        try { held = board.GetSeedTypeInCursor(Player); }
+        catch { held = SeedType.None; }
+
+        // Out from the middle of the box, so the first answer that fits is also the one
+        // furthest from any edge.
+        foreach (int dy in Offsets(SlotHeight / 2, SlotHeight))
+        {
+            foreach (int dx in Offsets(SlotWidth / 2, SlotWidth / 2))
+            {
+                int px = slot.PixelX + dx;
+                int py = slot.PixelY + dy;
+
+                int gx, gy;
+                try
+                {
+                    gx = board.PlantingPixelToGridX(px, py, held);
+                    gy = board.PlantingPixelToGridY(px, py, held);
+                }
+                catch { continue; }
+
+                if (gx == slot.GridX && gy == slot.GridY) return (px, py);
+            }
+        }
+
+        Core.Log.Warning($"[garden] no pixel around slot {slot.Index + 1}" +
+                         $" (grid {slot.GridX},{slot.GridY}) plants there;" +
+                         $" clicking its own corner and hoping");
+
+        return (slot.PixelX, slot.PixelY);
+    }
+
+    /// <summary>A slot's box, as the game measures it when deciding what was clicked.</summary>
+    private const int SlotWidth = 80;
+    private const int SlotHeight = 85;
+
+    /// <summary>Steps out from the middle, alternating each way, never past the reach.</summary>
+    private static IEnumerable<int> Offsets(int middle, int reach)
+    {
+        yield return middle;
+
+        for (int step = 5; step <= reach; step += 5)
+        {
+            yield return middle + step;
+            yield return middle - step;
         }
     }
 
