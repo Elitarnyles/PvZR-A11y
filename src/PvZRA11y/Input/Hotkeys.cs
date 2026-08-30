@@ -263,15 +263,15 @@ public static class Hotkeys
         {
             if (onLawn)
             {
-                // Coins on the first press, sun on the second, the way the original mod had
-                // it. Sun is the number asked for constantly, so it sits where a second press
-                // lands without waiting for the first answer to finish.
+                // Sun on the first press, coins on the second. Sun is the number every
+                // decision on the lawn waits for and it is asked for constantly, so it goes
+                // where no second press has to be timed; coins are the slower question.
                 long now = Environment.TickCount64;
                 bool second = now - _lastInfo3At < DoubleTapMs;
                 _lastInfo3At = now;
 
-                if (second) LawnInput.AnnounceSun();
-                else LawnInput.AnnounceCoins();
+                if (second) LawnInput.AnnounceCoins();
+                else LawnInput.AnnounceSun();
             }
             else Focus.ReadScreen();
 

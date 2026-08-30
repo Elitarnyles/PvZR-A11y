@@ -678,10 +678,9 @@ public static class LawnInput
     /// <summary>
     /// Says how many coins are in the purse.
     ///
-    /// On the first press of the money key, with sun on the second — the order the original
-    /// mod used. Coins are the slower currency and the one you go looking for an answer
-    /// about; sun changes every few seconds and is asked for constantly, so it sits where a
-    /// second press lands without waiting for the first to finish speaking.
+    /// On the second press of the money key, with sun on the first. Sun is what every
+    /// decision on the lawn waits for and it is asked for constantly, so it takes the press
+    /// that needs no timing; coins are the slower question and can afford the wait.
     /// </summary>
     public static void AnnounceCoins() => UI.Store.AnnounceCoins();
 
