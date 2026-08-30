@@ -107,6 +107,17 @@ public static class Strings
         ["lawn.broke"] = "Broke the {0}",
         // ---- the Zen Garden ----
         // ---- the final level ----
+        // ---- the Mini-Games, Puzzle and Survival pages ----
+        ["challenges.page.MiniGame"] = "Mini-games",
+        ["challenges.page.Puzzle"] = "Puzzle",
+        ["challenges.page.Survival"] = "Survival",
+        ["challenges.header"] = "{0}, {1} of them",
+        ["challenges.locked"] = "locked",
+        ["challenges.beaten"] = "beaten",
+        ["challenges.empty"] = "Nothing listed on the {0} page.",
+        ["challenges.moved"] = "{0}",
+        ["challenges.no_pad"] = "This page answers only to a controller, and the mod's stand-in for one is switched off.",
+
         ["boss.arrived"] = "Dr Zomboss is here.",
         ["boss.fireball"] = "Fireball, row {0}",
         ["boss.iceball"] = "Iceball, row {0}",

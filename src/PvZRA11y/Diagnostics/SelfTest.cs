@@ -49,6 +49,7 @@ public static class SelfTest
         LawnSection(sb, "zombies", CheckZombies);
         Section(sb, "plant chooser", Gameplay.SeedChooser.Dump);
         Section(sb, "zen garden", Gameplay.Garden.Dump);
+        Section(sb, "challenge pages", UI.Challenges.Dump);
         Section(sb, "boss", Gameplay.Boss.Dump);
         Section(sb, "notes", Gameplay.Notes.Check);
         Section(sb, "panels", CheckPanels);

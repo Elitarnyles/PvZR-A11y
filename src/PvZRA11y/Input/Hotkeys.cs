@@ -105,6 +105,10 @@ public static class Hotkeys
         // refusal or the lawn handlers would answer for them.
         if (Garden.IsActive && Lawn.HasInput && HandleGarden(kb)) return;
 
+        // Mini-Games, Puzzle and Survival: pages with no controls on them at all, where the
+        // arrows have to become a controller's directional pad or nothing moves.
+        if (Challenges.IsActive && HandleChallenges(kb)) return;
+
         // On the lawn the arrow keys walk the grid. In menus, and while a dialog covers the
         // lawn, they belong to the game.
         if (Lawn.HasInput && HandleLawnMovement(kb)) return;
@@ -382,6 +386,31 @@ public static class Hotkeys
         // The same key that reads the seed bank on the lawn reads the whole garden here. Both
         // answer "what have I got", without touching what is in your hand.
         if (Pressed(kb, _startLevel)) return GardenInput.AnnounceGarden();
+
+        return false;
+    }
+
+    /// <summary>
+    /// The three challenge pages, which answer only to a controller.
+    ///
+    /// Their entries are not controls, so there is nothing for Tab to walk and nothing for
+    /// Enter to press. The arrows, Enter and Backspace are turned into the directional pad,
+    /// the submit button and the cancel button, and what the selection landed on is asked of
+    /// the game afterwards.
+    /// </summary>
+    private static bool HandleChallenges(Keyboard kb)
+    {
+        if (Pressed(kb, Key.UpArrow)) return Challenges.Move(0, -1);
+        if (Pressed(kb, Key.DownArrow)) return Challenges.Move(0, 1);
+        if (Pressed(kb, Key.LeftArrow)) return Challenges.Move(-1, 0);
+        if (Pressed(kb, Key.RightArrow)) return Challenges.Move(1, 0);
+
+        if (Pressed(kb, _activate)) return Challenges.Choose();
+        if (Pressed(kb, _shovel)) return Challenges.Leave();
+
+        // The same key that reads the seed bank on the lawn reads the whole page here: what is
+        // on it, which of it is locked, and which you have already beaten.
+        if (Pressed(kb, _startLevel)) return Challenges.AnnouncePage();
 
         return false;
     }

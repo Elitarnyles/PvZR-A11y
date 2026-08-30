@@ -99,6 +99,7 @@ public class Core : MelonMod
         ("notes",        Gameplay.Notes.Tick),
         ("almanac",      UI.Almanac.Tick),
         ("shop",         UI.Store.Tick),
+        ("challenges",   UI.Challenges.Tick),
         ("dialogue",     Gameplay.Dialogue.Tick),
         ("focus",        Focus.Update),
         ("readiness",    Focus.TickReadiness),
