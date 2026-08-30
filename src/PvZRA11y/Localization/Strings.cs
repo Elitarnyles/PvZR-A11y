@@ -59,7 +59,6 @@ public static class Strings
         ["msg.screen_is"] = "Screen: {0}.",
         ["msg.controls_count"] = "{0} controls.",
         ["msg.dump_written"] = "Screen contents written to the log.",
-        ["ui.hint.harder"] = "{0}. Turned on, every level of Adventure sends ten more waves of zombies the next time you play it through. Turned off, it stays as gentle as the first time.",
         ["msg.unlabelled"] = "unlabelled control",
         ["msg.not_available"] = "Not available from here.",
         ["msg.and_more"] = "and {0} more",

@@ -62,34 +62,20 @@ public static class UiText
 
     /// <summary>The control's name, without role or state.</summary>
     /// <summary>
-    /// Adds a sentence to the handful of labels that are a single word and a decision.
+    /// Where a sentence would be added to a label that is a single word and a decision.
     ///
-    /// The game has controls whose whole label is one word that says nothing about what
-    /// pressing them does. A sighted player has the picture, the position on the screen and
-    /// the moment it appears to go on; read out on its own the word is just a word. "Harder"
-    /// at the end of the credits is the clear case: it decides whether your next run through
-    /// Adventure has ten extra waves on every level, and there is nothing in the label to
-    /// suggest that.
+    /// Empty on purpose. The first thing put here explained the "Harder?" box at the end of
+    /// the credits, and the explanation was wrong: it described what the ORIGINAL game does
+    /// automatically on a replay - ten more waves on every level - and attached it to a
+    /// switch that, as far as the shipped code shows, nothing reads. The only named consumer
+    /// of GetHarderEnabled anywhere in the game is the settings screen, reading it back to
+    /// draw its own tick.
     ///
-    /// Matched against the game's own text rather than against the English word, so it keeps
-    /// working in a language neither of us reads.
+    /// The empty method is worth keeping for the lesson. A label the player cannot interpret
+    /// is a real problem, and inventing a confident sentence about it is worse than the
+    /// silence it replaces.
     /// </summary>
-    private static string Explain(string label)
-    {
-        if (string.IsNullOrEmpty(label)) return label;
-
-        try
-        {
-            string harder = A11y.GameText.Resolve("$HARDMODE");
-            if (!string.IsNullOrEmpty(harder)
-                && label.Trim().TrimEnd('?').Equals(harder.Trim().TrimEnd('?'),
-                                                     StringComparison.OrdinalIgnoreCase))
-                return Strings.T("ui.hint.harder", label);
-        }
-        catch { /* an explanation is a courtesy; the label still stands */ }
-
-        return label;
-    }
+    private static string Explain(string label) => label;
 
     public static string GetLabel(Selectable selectable)
     {
