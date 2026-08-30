@@ -49,6 +49,7 @@ public static class Hotkeys
 
     private static long _lastInfo1At = long.MinValue;
     private static long _lastInfo3At = long.MinValue;
+    private static long _lastBankAt = long.MinValue;
 
     /// <summary>Reads the configured keys. Call after Settings.Load and on preference reload.</summary>
     public static void Rebind()
@@ -139,11 +140,24 @@ public static class Hotkeys
         // are the reels, and reading them out as plants you could pick was nonsense.
         if (Lawn.IsOnBoard && Pressed(kb, _startLevel))
         {
-            // On a picture puzzle the deck holds one plant and everybody knows which. What is
-            // worth reading out is where the picture still wants it.
-            if (SlotMachine.IsActive) SlotMachine.AnnounceReels();
-            else if (ArtChallenge.IsActive) ArtChallenge.AnnounceRemaining();
-            else LawnInput.AnnounceBank();
+            if (SlotMachine.IsActive) { SlotMachine.AnnounceReels(); return; }
+
+            // On a picture puzzle this key gives the picture, and a second press gives the
+            // deck. Both are needed and neither can be dropped: the sunflower wants three
+            // different plants, so knowing a square wants an umbrella leaf is only useful
+            // alongside knowing which packet holds one.
+            if (ArtChallenge.IsActive)
+            {
+                long now = Environment.TickCount64;
+                bool second = now - _lastBankAt < DoubleTapMs;
+                _lastBankAt = now;
+
+                if (second) LawnInput.AnnounceBank();
+                else ArtChallenge.AnnounceRemaining();
+                return;
+            }
+
+            LawnInput.AnnounceBank();
             return;
         }
 

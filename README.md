@@ -174,7 +174,10 @@ to say it does not exist for a player who cannot see it.
 - Walking the lawn, a square that is part of the picture says **wants a Star fruit**, or
   **part of the picture** once the plant is standing on it. A square with no part in the
   pattern sounds like an ordinary square, because that is what it is.
-- **F6** — the rows and columns still waiting, a row at a time.
+- **F6** — what is still to plant, grouped by plant and then by row. Pressed twice quickly, the
+  seed bank, which you still need: Art Challenge Sunflower wants three different plants — star
+  fruit, wall-nut and umbrella leaf — so knowing a square wants an umbrella leaf only helps
+  alongside knowing which packet holds one.
 - **F4** — how many of the picture's plants are in place.
 
 The pattern is asked of the game square by square, so all three read the same way and a fourth
