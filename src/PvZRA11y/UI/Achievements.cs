@@ -75,16 +75,7 @@ public static class Achievements
     {
         if (index < 0) return null;
 
-        try
-        {
-            RootModel root = RootModel.Instance;
-            if (root == null) return null;
-
-            IModel model = null;
-            if (!root.TryGetModel($"{Root}.all.{index}", out model) || model == null) return null;
-
-            return model.TryCast<AchievementEntryModel>();
-        }
+        try { return ModelText.ModelAt($"{Root}.all.{index}")?.TryCast<AchievementEntryModel>(); }
         catch { return null; }
     }
 
@@ -355,6 +346,17 @@ public static class Achievements
         int earned = Unlocked();
 
         Core.Log.Msg($"[achievements] open: {count} entries, {earned} earned");
+
+        // Which way in answered, and what the first entry looks like. The list is read from
+        // the data model rather than from anything on screen, so when it comes back empty
+        // there is nothing visible to work backwards from.
+        if (count <= 0)
+        {
+            foreach (string key in new[] { Root, Root + ".all", Root + ".total", Root + ".all.0",
+                                           Root + ".all.0.title" })
+                Core.Log.Msg($"[achievements]   \"{key}\" -> {(ModelText.ModelAt(key) == null ? "nothing" : "a model")}"
+                             + $", value {ModelText.FromRoot(key) ?? "<none>"}");
+        }
 
         Speech.Say(count <= 0
             ? Strings.T("achievements.empty")

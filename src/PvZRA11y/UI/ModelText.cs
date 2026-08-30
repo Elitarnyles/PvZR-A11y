@@ -66,16 +66,38 @@ public static class ModelText
         }
     }
 
-    /// <summary>One value from the root of the data model, by absolute key.</summary>
-    public static string FromRoot(string key)
+    /// <summary>
+    /// The model at an absolute key, or null.
+    ///
+    /// A dotted key has to be parsed first. The lookup that takes a plain string is a single
+    /// level deep - it compares the whole string against each direct child's name - so
+    /// "achievements.total" finds nothing even though both halves of it exist and the game
+    /// reads that very path itself. A parsed key walks the path a segment at a time, stepping
+    /// into each object model as it goes, which is what the game does.
+    ///
+    /// This was worth an evening. The achievements screen read as empty, and the shop's
+    /// second route to the coin count had been quietly failing for as long as it had existed
+    /// - unnoticed only because a third route answered.
+    /// </summary>
+    public static IModel ModelAt(string key)
     {
+        if (string.IsNullOrWhiteSpace(key)) return null;
+
         try
         {
             RootModel root = RootModel.Instance;
             if (root == null) return null;
 
             IModel model = null;
-            return root.TryGetModel(key, out model) ? ValueOf(model) : null;
+
+            if (key.IndexOf('.') >= 0)
+            {
+                ModelKey parsed = ModelKey.Parse(key);
+                if (parsed != null && root.TryGetModel(parsed, 0, out model) && model != null)
+                    return model;
+            }
+
+            return root.TryGetModel(key, out model) ? model : null;
         }
         catch (Exception ex)
         {
@@ -86,6 +108,9 @@ public static class ModelText
             return null;
         }
     }
+
+    /// <summary>One value from the root of the data model, by absolute key.</summary>
+    public static string FromRoot(string key) => ValueOf(ModelAt(key));
 
     private static string ValueOf(IModel model)
     {
