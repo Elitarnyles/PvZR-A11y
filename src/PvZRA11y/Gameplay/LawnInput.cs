@@ -670,7 +670,7 @@ public static class LawnInput
         string condition = Lawn.PlantConditionAt(x, y);
         if (!string.IsNullOrEmpty(condition)) parts.Add(condition);
 
-        parts.Add(Strings.T(Lawn.RowHasMower(y) ? "lawn.mower_present" : "lawn.mower_gone"));
+        parts.Add(Lawn.LastLineOf(y));
 
         Speech.SayVerbatim(string.Join(". ", parts), "lawn detail");
     }

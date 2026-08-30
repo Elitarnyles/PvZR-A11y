@@ -87,7 +87,13 @@ public static class Sonar
         Tones.ClearPending();
         PlayTones(found);
 
-        Speech.SayVerbatim(Compose(found, Boss.BallInRow(row)), "sonar");
+        // What is guarding this row comes first, the way the original mod put it on this key.
+        // It is the fact that decides whether a row can be left to look after itself, and it
+        // is the one thing on a lawn a player can never work out from anywhere else.
+        string guard = Lawn.LastLineOf(row);
+        string zombies = Compose(found, Boss.BallInRow(row));
+
+        Speech.SayVerbatim(string.IsNullOrEmpty(guard) ? zombies : guard + ". " + zombies, "sonar");
         ReportSkipped("sonar");
     }
 
@@ -125,19 +131,57 @@ public static class Sonar
         int ballRow = Boss.BallRow(out _);
         if (ballRow >= 0) rows.Add(ballRow + 1);
 
-        if (rows.Count == 0)
-        {
-            // An empty result after losing zombies is not a clear lawn. This branch returns
-            // before ReportSkipped further down would ever run, so the note has to be made
-            // here — and instead of "all clear", never beside it.
-            if (LastSkipped > 0) { ReportSkipped("sonar rows"); return; }
+        // An empty result after losing zombies is not a clear lawn. Checked before anything
+        // else is said, and instead of "all clear", never beside it.
+        if (rows.Count == 0 && LastSkipped > 0) { ReportSkipped("sonar rows"); return; }
 
-            Speech.SayVerbatim(Strings.T("sonar.all_clear"), "sonar rows");
-            return;
+        var parts = new List<string>(2)
+        {
+            rows.Count == 0
+                ? Strings.T("sonar.all_clear")
+                : Strings.T("sonar.rows", string.Join(", ", rows)),
+        };
+
+        // Which lanes still have something at the end of them. This is what the key was
+        // missing: on an I, Zombie board with no zombies out it answered "Lawn clear" and
+        // said nothing about the brains, which are the only thing on that board worth
+        // knowing the position of.
+        string guarded = GuardedRows();
+        if (guarded != null) parts.Add(guarded);
+
+        Speech.SayVerbatim(string.Join(". ", parts), "sonar rows");
+        ReportSkipped("sonar rows");
+    }
+
+    /// <summary>
+    /// The rows that still have their last line of defence, or null when there is nothing
+    /// worth saying — every row guarded on an ordinary lawn is the normal state of affairs
+    /// and not news.
+    /// </summary>
+    private static string GuardedRows()
+    {
+        int count = Lawn.SafeRowCount();
+        if (count <= 0) return null;
+
+        var held = new List<int>();
+        for (int y = 0; y < count; y++)
+        {
+            if (Brains.IsIZombieLevel) { if (Brains.StandingIn(y)) held.Add(y + 1); }
+            else if (Lawn.RowHasMower(y)) held.Add(y + 1);
         }
 
-        Speech.SayVerbatim(Strings.T("sonar.rows", string.Join(", ", rows)), "sonar rows");
-        ReportSkipped("sonar rows");
+        if (Brains.IsIZombieLevel)
+        {
+            return held.Count == 0
+                ? Strings.T("sonar.no_brains")
+                : Strings.T("sonar.brains", string.Join(", ", held));
+        }
+
+        if (held.Count == count) return null;   // everything still guarded: nothing to report
+
+        return held.Count == 0
+            ? Strings.T("sonar.no_mowers")
+            : Strings.T("sonar.mowers", string.Join(", ", held));
     }
 
     /// <summary>

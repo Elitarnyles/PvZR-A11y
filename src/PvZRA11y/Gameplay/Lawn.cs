@@ -1945,12 +1945,65 @@ public static class Lawn
         catch { return 5; }
     }
 
-    /// <summary>Whether the row still has its lawn mower, the last line of defence.</summary>
-    public static bool RowHasMower(int y)
+    /// <summary>
+    /// The row's last line of defence, named — or null when there is none left.
+    ///
+    /// Told apart by kind, because they are not interchangeable: a pool cleaner guards a
+    /// water row and a roof sweeper a roof one, and hearing "mower" on a roof would be a
+    /// promise the lawn cannot keep.
+    ///
+    /// A mower that has already been set off is not a defence. The game leaves it in the row
+    /// while it charges across and while it is being squashed, and the mod counted both as
+    /// protection — so a row whose mower had just been spent still read as guarded, at the
+    /// exact moment that was most wrong.
+    /// </summary>
+    public static string MowerInRow(int y)
     {
-        if (_board == null) return false;
-        try { return _board.FindLawnMowerInRow(y) != null; }
-        catch { return false; }
+        if (_board == null) return null;
+
+        LawnMower mower;
+        try { mower = _board.FindLawnMowerInRow(y); }
+        catch { return null; }
+
+        if (mower == null) return null;
+
+        try { if (mower.mDead) return null; } catch { }
+
+        try
+        {
+            LawnMowerState state = mower.mMowerState;
+            // Rolling in counts: at the start of a level the mowers drive into place, and one
+            // that has not finished arriving is still one you have.
+            if (state != LawnMowerState.Ready && state != LawnMowerState.RollingIn) return null;
+        }
+        catch { /* an unreadable state is not reason enough to call the row undefended */ }
+
+        LawnMowerType kind;
+        try { kind = mower.mMowerType; }
+        catch { return Strings.T("lawn.mower.Lawn"); }
+
+        string key = "lawn.mower." + kind;
+        return Strings.Has(key) ? Strings.T(key) : UiText.Prettify(kind.ToString());
+    }
+
+    /// <summary>Whether the row still has its lawn mower, the last line of defence.</summary>
+    public static bool RowHasMower(int y) => MowerInRow(y) != null;
+
+    /// <summary>
+    /// What stands between this row and losing, in the words that fit the mode.
+    ///
+    /// Everywhere the player is the one planting, that is the mower. In I, Zombie the roles
+    /// are the other way round and the thing that matters in a lane is the brain at the end
+    /// of it. One question, two answers, and the mod picks by the mode rather than making
+    /// the player remember which key means what where.
+    /// </summary>
+    public static string LastLineOf(int y)
+    {
+        if (Brains.IsIZombieLevel)
+            return Strings.T(Brains.StandingIn(y) ? "lawn.brain_here" : "lawn.brain_gone");
+
+        string mower = MowerInRow(y);
+        return mower ?? Strings.T("lawn.mower_gone");
     }
 
     #endregion
