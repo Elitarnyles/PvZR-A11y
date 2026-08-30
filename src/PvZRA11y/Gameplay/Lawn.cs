@@ -1506,7 +1506,7 @@ public static class Lawn
         if (_board == null) return false;
         if (!TryGetPosition(out int x, out int y)) return false;
 
-        if (!TryPixelForSquare(x, y, out int px, out int py))
+        if (!TryPlantingPixelForSquare(x, y, out int px, out int py))
         {
             Core.Log.Warning($"[lawn] no pixel position maps back to square {x},{y}; not planting");
             return false;
@@ -1523,6 +1523,80 @@ public static class Lawn
         {
             Core.Log.Warning($"Could not plant at {x},{y}: {ex.Message}");
             return false;
+        }
+    }
+
+    /// <summary>
+    /// Finds a pixel that will PLANT on a given square, which is not the same question.
+    ///
+    /// The game shifts a click before deciding which square it meant, and how far it shifts
+    /// depends on what is in your hand: a Spikeweed or a Spikerock goes fifteen pixels up, a
+    /// Cattail or a Gravebuster fifteen down. The plain conversion knows nothing about that,
+    /// so a pixel it happily confirms as being on row one plants a Spikeweed on the row above
+    /// - which is exactly what happened, every time, to the one plant it happens to.
+    ///
+    /// So the seed in hand is put to the game along with the pixel, and the answer that comes
+    /// back is the square the plant will really land on. No offset is written down here; the
+    /// same code covers the plants that shift the other way, and any that a later update
+    /// decides to shift.
+    /// </summary>
+    private static bool TryPlantingPixelForSquare(int x, int y, out int px, out int py)
+    {
+        px = py = 0;
+
+        SeedType seed;
+        try { seed = _board.GetSeedTypeInCursor(Player); }
+        catch { seed = SeedType.None; }
+
+        // Nothing in hand means nothing will be planted, and the click is going somewhere
+        // else - the shovel, a vase, a mallet. The plain conversion is the right one there.
+        if (seed == SeedType.None) return TryPixelForSquare(x, y, out px, out py);
+
+        try
+        {
+            int baseX = _board.GridToPixelX(x, y);
+            int baseY = _board.GridToPixelY(x, y);
+
+            // Out from the middle of the cell, so the pixel chosen sits as far from an edge
+            // as the shift allows.
+            foreach (int dy in Spread(50, 90))
+            {
+                foreach (int dx in Spread(40, 40))
+                {
+                    int tryX = baseX + dx;
+                    int tryY = baseY + dy;
+
+                    if (_board.PlantingPixelToGridX(tryX, tryY, seed) != x) continue;
+                    if (_board.PlantingPixelToGridY(tryX, tryY, seed) != y) continue;
+
+                    px = tryX;
+                    py = tryY;
+                    return true;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Core.Log.Warning($"Could not map square {x},{y} to a planting pixel: {ex.Message}");
+        }
+
+        // Better a click the game may put one row out than no click at all: the player can
+        // hear where the plant landed and dig it up, and cannot hear a key that did nothing.
+        Core.Log.Warning($"[lawn] nothing around square {x},{y} plants there with {seed};" +
+                         " falling back to the plain conversion");
+
+        return TryPixelForSquare(x, y, out px, out py);
+    }
+
+    /// <summary>Steps out from the middle, alternating each way, never past the reach.</summary>
+    private static IEnumerable<int> Spread(int middle, int reach)
+    {
+        yield return middle;
+
+        for (int step = 5; step <= reach; step += 5)
+        {
+            yield return middle + step;
+            yield return middle - step;
         }
     }
 
