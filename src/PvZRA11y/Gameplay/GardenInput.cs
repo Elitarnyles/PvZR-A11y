@@ -172,6 +172,11 @@ public static class GardenInput
 
             string carried = Lawn.PlantName(Lawn.HeldSeed());
 
+            // Whether the pot was free matters afterwards, and cannot be asked afterwards:
+            // the plant being carried is still standing in the pot it came from, only greyed
+            // out, so a drop onto its own pot is refused by the game as an occupied square.
+            bool wasFree = Garden.Occupied(target.Value.GridX, target.Value.GridY) == null;
+
             if (!Garden.Place(target.Value))
             {
                 Speech.Say(Strings.T("garden.cannot_place", carried),
@@ -179,9 +184,16 @@ public static class GardenInput
                 return true;
             }
 
-            Speech.Say(Lawn.HeldSeed() == SeedType.None
+            // Asked of the board, not of the cursor. The game empties the cursor whatever
+            // happens - on a plant that landed and on one that was refused alike - so testing
+            // it announced a success every single time, including the times the plant had not
+            // moved an inch. There is one thing that tells the two apart: whether the pot now
+            // holds something it did not hold a moment ago.
+            bool landed = wasFree && Garden.Occupied(target.Value.GridX, target.Value.GridY) != null;
+
+            Speech.Say(landed
                            ? Strings.T("garden.placed", carried, Garden.PositionOf(target.Value))
-                           : Strings.T("garden.still_holding", carried),
+                           : Strings.T(wasFree ? "garden.place_failed" : "garden.pot_taken", carried),
                        interrupt: true, context: "garden", allowRepeat: true);
             return true;
         }
@@ -221,6 +233,32 @@ public static class GardenInput
             return true;
         }
 
+        // The tools that carry rather than feed are done here, and must not go on to the
+        // watcher below.
+        //
+        // That watcher exists for the watering can and its kin: it waits for the plant to take
+        // what it was given and then says what changed. A glove changes nothing about a plant -
+        // it lifts it - so the watcher saw the pot it came from standing empty and announced
+        // "The plant is gone", which is both wrong and, being spoken with an interrupt on the
+        // same context, wiped out the true sentence that had been queued a few lines earlier.
+        // Two glove cycles in a row therefore produced no confirmation of anything and one
+        // sentence that was not true.
+        //
+        // Selling is on the list for a different reason: nothing at all happens until the
+        // question on screen is answered, so there is nothing yet to watch for.
+        if (Carries(tool.What))
+        {
+            SeedType lifted = Lawn.HeldSeed();
+
+            Speech.Say(lifted != SeedType.None
+                           ? Strings.T("garden.picked_up", Lawn.PlantName(lifted))
+                           : Strings.T("garden.nothing_to_pick_up"),
+                       interrupt: true, context: "garden", allowRepeat: true);
+            return true;
+        }
+
+        if (tool.What == ReloadedObjectType.MoneySign) return true;
+
         // Not read back in the same breath. The game registers the watering on its own next
         // update, so asking straight away found the plant still thirsty and reported a
         // failure that had not happened - while the game's own advice was cheerfully saying
@@ -231,6 +269,10 @@ public static class GardenInput
         _pendingFrames = 0;
         return true;
     }
+
+    /// <summary>Tools that lift a plant onto the cursor rather than doing something to it.</summary>
+    private static bool Carries(ReloadedObjectType what) =>
+        what == ReloadedObjectType.Glove || what == ReloadedObjectType.Wheelbarrow;
 
     private static Garden.Tool? _pendingTool;
     private static Garden.Slot _pendingSlot;

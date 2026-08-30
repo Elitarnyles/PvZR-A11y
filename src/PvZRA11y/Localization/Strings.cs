@@ -209,6 +209,10 @@ public static class Strings
         ["garden.nothing_planted"] = "Nothing planted here yet.",
 
         ["garden.placed"] = "Put the {0} down, {1}",
+        ["garden.picked_up"] = "Picked up the {0}",
+        ["garden.nothing_to_pick_up"] = "No plant here to pick up.",
+        ["garden.pot_taken"] = "That pot is taken, still holding the {0}",
+        ["garden.place_failed"] = "The {0} would not go there",
         ["garden.still_holding"] = "Still holding the {0}",
         ["garden.cannot_place"] = "Cannot put the {0} there.",
         ["garden.no_shop"] = "Could not open the shop. The garden answers only to a controller, and the mod's stand-in for one is switched off.",
