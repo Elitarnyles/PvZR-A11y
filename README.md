@@ -164,6 +164,22 @@ mode is played.
   standing and how many of those are marked as holding a plant. None of those three modes has
   waves for the usual line to report.
 
+### In the picture puzzles
+
+Seeing Stars, Art Challenge Wall-nut and Art Challenge Sunflower are one mini-game in three
+coats: a pattern is marked out on the lawn and you win by planting the right plant on every
+marked square while the zombies come. The pattern is drawn on the ground in a colour, which is
+to say it does not exist for a player who cannot see it.
+
+- Walking the lawn, a square that is part of the picture says **wants a Star fruit**, or
+  **part of the picture** once the plant is standing on it. A square with no part in the
+  pattern sounds like an ordinary square, because that is what it is.
+- **F6** — the rows and columns still waiting, a row at a time.
+- **F4** — how many of the picture's plants are in place.
+
+The pattern is asked of the game square by square, so all three read the same way and a fourth
+would need no new code.
+
 ### In the Slot Machine
 
 The keys are the ordinary lawn keys. Two of them mean something else for the length of that

@@ -139,7 +139,10 @@ public static class Hotkeys
         // are the reels, and reading them out as plants you could pick was nonsense.
         if (Lawn.IsOnBoard && Pressed(kb, _startLevel))
         {
+            // On a picture puzzle the deck holds one plant and everybody knows which. What is
+            // worth reading out is where the picture still wants it.
             if (SlotMachine.IsActive) SlotMachine.AnnounceReels();
+            else if (ArtChallenge.IsActive) ArtChallenge.AnnounceRemaining();
             else LawnInput.AnnounceBank();
             return;
         }
@@ -320,11 +323,14 @@ public static class Hotkeys
                 string vases = boss == null && brains == null ? Lawn.VaseProgress() : null;
                 string slots = boss == null && brains == null && vases == null
                     ? SlotMachine.Describe() : null;
+                string art = boss == null && brains == null && vases == null && slots == null
+                    ? ArtChallenge.Describe() : null;
 
                 if (boss != null) Speech.SayVerbatim(boss, "boss");
                 else if (brains != null) Speech.SayVerbatim(brains, "brains");
                 else if (vases != null) Speech.SayVerbatim(vases, "vases");
                 else if (slots != null) Speech.SayVerbatim(slots, "slots");
+                else if (art != null) Speech.SayVerbatim(art, "art");
                 else LawnInput.AnnounceProgress();
             }
             else Focus.ReadScreen();

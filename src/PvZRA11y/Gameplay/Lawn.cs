@@ -880,6 +880,13 @@ public static class Lawn
         if (!string.IsNullOrEmpty(lying)) parts.Add(lying);
         if (!string.IsNullOrEmpty(standing)) parts.Add(standing);
 
+        // On a picture puzzle, what the pattern wants here is the square's whole meaning, and
+        // it is drawn on the ground in a colour - which is to say it does not exist at all for
+        // a player who cannot see it. Said after what is on the square, so "Star fruit" comes
+        // before "wants a Star fruit" and the two do not run together.
+        string wanted = ArtChallenge.HintFor(x, y);
+        if (!string.IsNullOrEmpty(wanted)) parts.Add(wanted);
+
         string planting = PlantingStateOf(x, y);
         if (!string.IsNullOrEmpty(planting)) parts.Add(planting);
 
