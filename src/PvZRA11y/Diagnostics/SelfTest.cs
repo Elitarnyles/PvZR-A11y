@@ -52,6 +52,7 @@ public static class SelfTest
         Section(sb, "challenge pages", UI.Challenges.Dump);
         Section(sb, "boss", Gameplay.Boss.Dump);
         Section(sb, "brains", Gameplay.Brains.Dump);
+        Section(sb, "achievements", UI.Achievements.Dump);
         Section(sb, "notes", Gameplay.Notes.Check);
         Section(sb, "panels", CheckPanels);
         Section(sb, "pause", CheckPause);

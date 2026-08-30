@@ -416,6 +416,18 @@ public static class Strings
         ["screen.Store"] = "Store",
         ["screen.Achievements"] = "Achievements",
 
+        ["achievements.opened"] = "Achievements. {0} of {1} earned. Up and down to walk the list.",
+        ["achievements.summary"] = "{0} of {1} achievements earned.",
+        ["achievements.position"] = "{0} of {1}",
+        ["achievements.earned"] = "earned",
+        ["achievements.not_earned"] = "not earned",
+        ["achievements.edge"] = "End of the list.",
+        ["achievements.empty"] = "Nothing in the achievements list.",
+        ["achievements.no_requirement"] = "{0}. Nothing says what this one takes.",
+        ["achievements.still_to_do"] = "{0} still to earn.",
+        ["achievements.all_earned"] = "Every achievement is earned.",
+        ["achievements.no_way_back"] = "Nothing here would close the achievements.",
+
         // -- One-line plant descriptions -------------------------------------
         // Written here rather than taken from the game. Its own tooltip strings resolve to
         // nothing while the chooser is open — the text is loaded in banks and that one is

@@ -110,6 +110,11 @@ public static class Hotkeys
         // arrows have to become a controller's directional pad or nothing moves.
         if (Challenges.IsActive && HandleChallenges(kb)) return;
 
+        // The achievements list, which is not a panel of its own but a section of the main
+        // menu slid in over the top - so it has to claim the arrows before anything that
+        // thinks the menu behind it is what the player is looking at.
+        if (Achievements.IsActive && HandleAchievements(kb)) return;
+
         // On the lawn the arrow keys walk the grid. In menus, and while a dialog covers the
         // lawn, they belong to the game.
         if (Lawn.HasInput && HandleLawnMovement(kb)) return;
@@ -431,6 +436,34 @@ public static class Hotkeys
         // The same key that reads the seed bank on the lawn reads the whole page here: what is
         // on it, which of it is locked, and which you have already beaten.
         if (Pressed(kb, _startLevel)) return Challenges.AnnouncePage();
+
+        return false;
+    }
+
+    /// <summary>
+    /// The achievements list.
+    ///
+    /// One column of thirty-seven, so only up and down move; left and right are left to the
+    /// game. The arrows say the name and whether it has been earned, and the key that reads a
+    /// square's detail on the lawn reads what this one takes - a sentence each, and hearing
+    /// thirty-seven of them while looking for one would be worse than pressing a key at the
+    /// one you stopped at.
+    ///
+    /// The key that reads a whole page elsewhere reads the ones still to earn, with what each
+    /// takes. That is the question behind opening this screen when the goal is to finish the
+    /// game: not what has been done, but what is left.
+    /// </summary>
+    private static bool HandleAchievements(Keyboard kb)
+    {
+        if (Pressed(kb, Key.UpArrow)) return Achievements.Move(-1);
+        if (Pressed(kb, Key.DownArrow)) return Achievements.Move(1);
+
+        if (Pressed(kb, _activate)) return Achievements.AnnounceRequirement();
+        if (Pressed(kb, _info2)) return Achievements.AnnounceRequirement();
+        if (Pressed(kb, _info4)) return Achievements.AnnounceSummary();
+        if (Pressed(kb, _startLevel)) return Achievements.AnnounceRemaining();
+
+        if (Pressed(kb, _shovel)) return Achievements.Leave();
 
         return false;
     }

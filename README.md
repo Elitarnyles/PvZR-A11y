@@ -194,6 +194,16 @@ that row one you need to know about.
 - **F4** — read the whole entry: name, cost, recharge and the full description.
 - **Tab** — reach the buttons around the page, including the way back out.
 
+### In the achievements
+
+- **Up** and **Down** — move through the list. Each one says its name, whether you have
+  earned it, and where it sits in the list.
+- **Enter**, or **F2** — what that one takes, in the game's own words.
+- **F4** — how many you have earned out of how many there are.
+- **F6** — every achievement you have not earned yet, each with what it takes. That is the
+  question behind opening this screen when the goal is to finish the game.
+- **Backspace** — back out.
+
 ### Anywhere
 
 - **Left Ctrl** — stop speaking.
