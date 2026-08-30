@@ -63,6 +63,9 @@ public class Core : MelonMod
                 "F3 sun, F4 progress.");
         Log.Msg("Keys, almanac: arrows move between entries, Enter opens one, F4 reads it in full.");
         Log.Msg("Keys, Whack a Zombie: arrows move, Backspace swings the mallet.");
+        Log.Msg("Keys, final level: F4 says what Dr Zomboss is about to throw and at which row, "
+              + "and how much of him is left. Fireballs, iceballs, stomps and drops are announced "
+              + "as he decides them, which is before they land.");
         Log.Msg("Keys, Zen Garden: arrows move between pots, minus and equals and the digits "
               + "choose a tool, Enter uses it on the pot you are standing on or moves to the "
               + "next garden, F1 how many plants want something (twice: what is planted), "
@@ -107,6 +110,7 @@ public class Core : MelonMod
         ("garden",       Gameplay.GardenInput.Tick),
         ("pad",          Input.VirtualPad.Tick),
         ("tripwire",     Gameplay.Sonar.TickTripwire),
+        ("boss",         Gameplay.Boss.Tick),
         ("tones",        Tones.Pump),
         ("speech",       Speech.Pump),
     };

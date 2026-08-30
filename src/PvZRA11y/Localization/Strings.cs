@@ -106,6 +106,19 @@ public static class Strings
         ["lawn.item.ScaryPot"] = "vase",
         ["lawn.broke"] = "Broke the {0}",
         // ---- the Zen Garden ----
+        // ---- the final level ----
+        ["boss.arrived"] = "Dr Zomboss is here.",
+        ["boss.fireball"] = "Fireball, row {0}",
+        ["boss.iceball"] = "Iceball, row {0}",
+        ["boss.stomp"] = "Stomping row {0}",
+        ["boss.stomp_any"] = "Stomping.",
+        ["boss.bungees"] = "Bungee zombies dropping.",
+        ["boss.rv"] = "Dropping a machine.",
+        ["boss.spawning"] = "Sending zombies.",
+        ["boss.health"] = "{0} percent left",
+        ["boss.quiet"] = "Dr Zomboss is doing nothing right now.",
+        ["boss.none"] = "No boss here.",
+
         ["garden.name.Main"] = "Main garden",
         ["garden.name.Mushroom"] = "Mushroom garden",
         ["garden.name.Aquarium"] = "Aquarium",

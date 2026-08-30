@@ -145,6 +145,20 @@ once the game confirms it. A vase says what came out of it as it breaks, never b
 - **F3** — how much sun you have.
 - **F4** — level progress.
 
+### The last level
+
+Dr Zomboss does not walk down a row, so nothing else in the mod sees him coming. He picks
+what to throw and where to throw it before the attack lands, and the mod says so at that
+moment:
+
+- **Fireball, row 3** or **Iceball, row 3** — the row is picked at random each time, so
+  there is no learning it. The fireball burns what is there; the iceball freezes it.
+- **Stomping row 2** — the foot comes down on one row that still has something to crush.
+- **Bungee zombies dropping**, **Dropping a machine**, **Sending zombies**.
+
+**F4** asks the same question at any time: what he is about to throw, at which row, and how
+much of him is left.
+
 ### Choosing plants before a level
 
 - **Left** and **Right** — one plant at a time. **Up** and **Down** — a row of eight.

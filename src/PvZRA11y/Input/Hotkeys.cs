@@ -262,8 +262,17 @@ public static class Hotkeys
 
         if (Pressed(kb, _info4))
         {
-            if (onLawn) LawnInput.AnnounceProgress();
+            if (onLawn)
+            {
+                // On the last level the usual progress line has nothing to say - there are no
+                // waves to be part of the way through. What matters there is the boss: what he
+                // is about to throw, at which row, and how much of him is left.
+                string boss = Boss.Describe();
+                if (boss != null) Speech.SayVerbatim(boss, "boss");
+                else LawnInput.AnnounceProgress();
+            }
             else Focus.ReadScreen();
+
             return true;
         }
 
