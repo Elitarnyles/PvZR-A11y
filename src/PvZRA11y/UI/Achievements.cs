@@ -100,8 +100,8 @@ public static class Achievements
         return count;
     }
 
-    /// <summary>How many have been earned, or -1 when the model will not say.</summary>
-    private static int Unlocked()
+    /// <summary>How many have been earned by the model's own tally, or -1 when it will not say.</summary>
+    private static int UnlockedTally()
     {
         string value = ModelText.FromRoot($"{Root}.unlocked");
 
@@ -110,6 +110,34 @@ public static class Achievements
                               System.Globalization.CultureInfo.InvariantCulture, out float parsed)
             ? (int)parsed
             : -1;
+    }
+
+    /// <summary>
+    /// How many have been earned, counted the hard way when the tally will not answer.
+    ///
+    /// Still -1 if even that fails, and callers have to respect it. Saying "0 of 37 earned" to
+    /// a player who has earned twenty is worse than saying nothing about the count: it is a
+    /// wrong answer in the voice of a right one, and the count is the whole reason this screen
+    /// gets opened.
+    /// </summary>
+    private static int Unlocked(int count)
+    {
+        int tally = UnlockedTally();
+        if (tally >= 0) return tally;
+
+        if (count <= 0) return -1;
+
+        int earned = 0;
+        bool anyRead = false;
+
+        for (int i = 0; i < count; i++)
+        {
+            if (Entry(i) == null) continue;
+            anyRead = true;
+            if (IsEarned(i)) earned++;
+        }
+
+        return anyRead ? earned : -1;
     }
 
     /// <summary>An entry's name, in words.</summary>
@@ -242,14 +270,12 @@ public static class Achievements
             return true;
         }
 
-        int earned = Unlocked();
-        if (earned < 0)
-        {
-            earned = 0;
-            for (int i = 0; i < count; i++) if (IsEarned(i)) earned++;
-        }
+        int earned = Unlocked(count);
 
-        Speech.SayVerbatim(Strings.T("achievements.summary", earned, count), "achievements");
+        Speech.SayVerbatim(earned < 0
+            ? Strings.T("achievements.summary_unknown", count)
+            : Strings.T("achievements.summary", earned, count), "achievements");
+
         return true;
     }
 
@@ -287,6 +313,37 @@ public static class Achievements
         }
 
         lines.Insert(0, Strings.T("achievements.still_to_do", lines.Count));
+        Speech.SayVerbatim(string.Join(". ", lines), "achievements");
+        return true;
+    }
+
+    /// <summary>
+    /// Reads the list from top to bottom.
+    ///
+    /// What "read the whole screen" means here, and it is long on purpose: thirty-seven
+    /// entries is what is on the screen. Left Ctrl stops it, as it stops anything.
+    /// </summary>
+    public static bool AnnounceAll()
+    {
+        int count = Count();
+        if (count <= 0)
+        {
+            Speech.SayVerbatim(Strings.T("achievements.empty"), "achievements");
+            return true;
+        }
+
+        int earned = Unlocked(count);
+
+        var lines = new List<string>(count + 1)
+        {
+            earned < 0 ? Strings.T("achievements.summary_unknown", count)
+                       : Strings.T("achievements.summary", earned, count),
+        };
+
+        for (int i = 0; i < count; i++)
+            lines.Add((Title(i) ?? Strings.T("msg.unlabelled")) + ", "
+                      + Strings.T(IsEarned(i) ? "achievements.earned" : "achievements.not_earned"));
+
         Speech.SayVerbatim(string.Join(". ", lines), "achievements");
         return true;
     }
@@ -343,7 +400,7 @@ public static class Achievements
         _announced = true;
 
         int count = Count();
-        int earned = Unlocked();
+        int earned = Unlocked(count);
 
         Core.Log.Msg($"[achievements] open: {count} entries, {earned} earned");
 
@@ -358,10 +415,24 @@ public static class Achievements
                              + $", value {ModelText.FromRoot(key) ?? "<none>"}");
         }
 
-        Speech.Say(count <= 0
-            ? Strings.T("achievements.empty")
-            : Strings.T("achievements.opened", earned < 0 ? 0 : earned, count),
-            interrupt: true, context: "achievements", allowRepeat: true);
+        if (count <= 0)
+        {
+            Speech.Say(Strings.T("achievements.empty"),
+                       interrupt: true, context: "achievements", allowRepeat: true);
+            return;
+        }
+
+        // The header, and then the entry the cursor is standing on. Without the second half
+        // the player lands on an unnamed position and the first press of Down takes them to
+        // the second entry, having never heard the first.
+        _cursor = 0;
+
+        string header = earned < 0
+            ? Strings.T("achievements.opened_unknown", count)
+            : Strings.T("achievements.opened", earned, count);
+
+        Speech.Say(header + " " + Describe(_cursor, count),
+                   interrupt: true, context: "achievements", allowRepeat: true);
     }
 
     /// <summary>The whole list, for the self-test.</summary>
@@ -372,7 +443,7 @@ public static class Achievements
 
         int count = Count();
         sb.AppendLine($"  entries     : {count}");
-        sb.AppendLine($"  earned      : {Unlocked()}");
+        sb.AppendLine($"  earned      : {Unlocked(count)} (tally says {UnlockedTally()})");
 
         if (count <= 0) { sb.AppendLine(); return; }
 

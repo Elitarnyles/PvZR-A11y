@@ -458,8 +458,19 @@ public static class Hotkeys
         if (Pressed(kb, Key.UpArrow)) return Achievements.Move(-1);
         if (Pressed(kb, Key.DownArrow)) return Achievements.Move(1);
 
+        // Tab walks the list too. There is nothing else on this screen for it to reach, and
+        // left alone it would step into the main menu behind - which is still built, still
+        // enabled, and merely slid out of sight.
+        if (Pressed(kb, Key.Tab))
+            return Achievements.Move(kb.shiftKey.isPressed ? -1 : 1);
+
         if (Pressed(kb, _activate)) return Achievements.AnnounceRequirement();
         if (Pressed(kb, _info2)) return Achievements.AnnounceRequirement();
+
+        // Reading the whole screen is claimed for the same reason as Tab: left to the general
+        // handler it would read out the menu hidden behind this one.
+        if (Pressed(kb, _info3)) return Achievements.AnnounceAll();
+
         if (Pressed(kb, _info4)) return Achievements.AnnounceSummary();
         if (Pressed(kb, _startLevel)) return Achievements.AnnounceRemaining();
 

@@ -418,6 +418,8 @@ public static class Strings
 
         ["achievements.opened"] = "Achievements. {0} of {1} earned. Up and down to walk the list.",
         ["achievements.summary"] = "{0} of {1} achievements earned.",
+        ["achievements.summary_unknown"] = "{0} achievements. Nothing would say how many you have earned.",
+        ["achievements.opened_unknown"] = "Achievements. {0} in the list. Up and down to walk it.",
         ["achievements.position"] = "{0} of {1}",
         ["achievements.earned"] = "earned",
         ["achievements.not_earned"] = "not earned",
