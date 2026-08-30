@@ -146,6 +146,13 @@ lying on them as you walk past, and **F6** reads the ground and the bank togethe
 Picking a plant up needs an empty hand — that is the game's own rule, not the mod's — so the
 mod puts back whatever you were holding first, and says you are carrying the new plant only
 once the game confirms it. A vase says what came out of it as it breaks, never before.
+
+The one thing a vase does say in advance is what is painted on it. Most are plain and
+could hold anything, but the game marks some with a leaf, and it only ever marks a vase
+that has a plant inside — those read as "vase with a plant". A vase marked with a zombie
+reads the same way. That is not knowing what is in a vase: the marking is on the outside,
+the plant's name is not, and picking the marked ones out at a glance is most of how the
+mode is played.
 - **Tab** — the game's fast-forward. The mod announces the new speed.
 - **F1** — scan the current row: how many zombies, and each one's column, kind and state.
   Pressed twice quickly, what is guarding that row: its mower, its pool cleaner or its roof

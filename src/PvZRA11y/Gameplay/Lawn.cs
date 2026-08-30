@@ -1014,6 +1014,25 @@ public static class Lawn
             // row that still needs a zombie sent down it and one already won.
             try { if (item.mDead) continue; } catch { }
 
+            // Vase Breaker paints its vases. Most are plain and could hold anything, but a
+            // vase with a leaf on it is one the game marked because there is a plant inside -
+            // it only ever marks a vase whose contents are a seed - and a vase with a zombie
+            // on it is marked the same way for a Gargantuar. A sighted player picks the leaf
+            // ones out at a glance and breaks them first, which is most of how the mode is
+            // played.
+            //
+            // This is not the same as saying what is in a vase before it is opened. The
+            // marking is painted on the outside; the plant's name is not.
+            if (type == GridItemType.ScaryPot)
+            {
+                GridItemState mark;
+                try { mark = item.mGridItemState; }
+                catch { mark = GridItemState.ScaryPotQuestion; }
+
+                if (mark == GridItemState.ScaryPotLeaf) return Strings.T("lawn.item.ScaryPotLeaf");
+                if (mark == GridItemState.ScaryPotZombie) return Strings.T("lawn.item.ScaryPotZombie");
+            }
+
             // A squished brain is the other case: not dead yet, scored already, and sitting
             // there for a few seconds. Named for what it is rather than counted as a brain
             // still waiting to be eaten.
@@ -1395,7 +1414,7 @@ public static class Lawn
             _board.MouseDown(px, py, 1, Player);
             _board.MouseUp(px, py, 1, Player);
 
-            broke = inside ?? Strings.T("lawn.item.ScaryPot");
+            broke = inside ?? GridItemAt(x, y) ?? Strings.T("lawn.item.ScaryPot");
             return true;
         }
         catch (Exception ex)

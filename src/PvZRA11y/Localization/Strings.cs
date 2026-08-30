@@ -104,6 +104,8 @@ public static class Strings
         ["lawn.roof"] = "roof",
         ["lawn.ice"] = "ice",
         ["lawn.item.ScaryPot"] = "vase",
+        ["lawn.item.ScaryPotLeaf"] = "vase with a plant",
+        ["lawn.item.ScaryPotZombie"] = "vase with a zombie",
         ["lawn.broke"] = "Broke the {0}",
         // ---- the Zen Garden ----
         // ---- the final level ----
