@@ -124,10 +124,52 @@ public static class Challenges
         catch { return null; }
     }
 
+    private static IUserService _user;
+    private static bool _reportedUserRoute;
+
+    /// <summary>
+    /// Who knows what is locked and what has been beaten.
+    ///
+    /// Same trap as the level data: the gameplay activity holds one but has not been given it
+    /// outside a level, so every entry read as unlocked - which on this save is wrong for
+    /// thirty of the thirty-three. The main menu's own activity has the same service and is
+    /// alive on exactly the screens where these pages live.
+    /// </summary>
     private static IUserService User()
     {
-        try { return Activity()?.UserService; }
+        try { if (_user != null) return _user; }
+        catch { _user = null; }
+
+        _user = FromActivity("the gameplay activity", () => Activity()?.UserService)
+             ?? FromActivity("the main menu",
+                    () => UnityEngine.Object.FindObjectOfType<MainMenuActivity>()?.m_userService)
+             ?? FromActivity("the frontend",
+                    () => UnityEngine.Object.FindObjectOfType<FrontendActivity>()?.m_userService);
+
+        if (_user == null && !_reportedUserRoute)
+        {
+            _reportedUserRoute = true;
+            Core.Log.Warning("[challenges] nothing would say which entries are locked");
+        }
+
+        return _user;
+    }
+
+    private static IUserService FromActivity(string where, Func<IUserService> read)
+    {
+        IUserService found;
+        try { found = read(); }
         catch { return null; }
+
+        if (found == null) return null;
+
+        if (!_reportedUserRoute)
+        {
+            _reportedUserRoute = true;
+            Core.Log.Msg($"[challenges] locked and beaten come from {where}");
+        }
+
+        return found;
     }
 
     #endregion
@@ -329,6 +371,10 @@ public static class Challenges
             _entries = null;
             _entriesFor = ChallengeEntryType.None;
             _announceIn = 0;
+
+            // Re-found per visit. A service handed out by an activity does not outlive it.
+            _user = null;
+            _reportedUserRoute = false;
             return;
         }
 
