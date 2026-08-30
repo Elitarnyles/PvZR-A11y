@@ -229,6 +229,17 @@ public static class PanelScope
 
         TopPanelId = topId;
 
+        // A box the game is waiting on owns the screen outright. Selling a plant in the Zen
+        // Garden puts Crazy Dave's speech bubble up alongside the question, and his bubble's
+        // one button belongs to no panel at all - so it was appended to every walk as a third
+        // control, and the player walked "Yes, No, Button" without a way to tell which of the
+        // three was the question and which was the man leaning in over it.
+        if (Gameplay.Lawn.ConfirmDialogOpen && byPanel[topId].Count > 0)
+        {
+            TopPanelId = topId;
+            return byPanel[topId];
+        }
+
         var result = new List<Selectable>(byPanel[topId].Count + unowned.Count);
         result.AddRange(byPanel[topId]);
 

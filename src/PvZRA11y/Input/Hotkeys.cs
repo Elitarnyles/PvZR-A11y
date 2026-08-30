@@ -182,7 +182,15 @@ public static class Hotkeys
             // A speech bubble has no control on it at all, so without this Enter falls
             // through to whatever was focused on the screen before and answers "Not
             // available from here" - leaving a conversation that cannot be got out of.
-            if (Lawn.DialogueInFront && Gameplay.Dialogue.Advance()) return;
+            //
+            // Except when the game is waiting on a yes-or-no box. Selling a plant in the Zen
+            // Garden puts both on screen at once: Crazy Dave leans in with his offer, and the
+            // question "Sell this plant to Crazy Dave?" sits underneath with its two buttons.
+            // The bubble is the front panel of the two, so it took the key, reported that its
+            // click had changed nothing, and swallowed the press anyway - leaving a question
+            // that could be read, and walked, and never answered. A box the game is waiting on
+            // outranks anything talking over it.
+            if (Lawn.DialogueInFront && !Lawn.ConfirmDialogOpen && Gameplay.Dialogue.Advance()) return;
 
             // Crazy Dave also talks inside the shop panel, where there is no speech bubble
             // to notice. But he talks about every item you land on, so "Dave is talking" is

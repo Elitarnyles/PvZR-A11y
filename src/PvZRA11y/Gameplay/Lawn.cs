@@ -607,6 +607,22 @@ public static class Lawn
     public static bool DialogueInFront => DialoguePanels.Contains(PanelScope.FrontPanelId ?? "");
 
     /// <summary>
+    /// True while the game is waiting on a yes-or-no box.
+    ///
+    /// The game's own answer, not a panel name, because there are several of these boxes and
+    /// they are not all on the same panel. What they have in common is that until one is
+    /// answered, nothing else on screen means anything.
+    /// </summary>
+    public static bool ConfirmDialogOpen
+    {
+        get
+        {
+            try { return Dialog.CurrentDialog != null; }
+            catch { return false; }
+        }
+    }
+
+    /// <summary>
     /// Moves a character's dialogue on, the way clicking does.
     ///
     /// Returns false when there was nothing to advance. The game's own method reports
