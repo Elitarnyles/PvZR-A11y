@@ -1,5 +1,71 @@
 # Changelog
 
+## 1.1.0 — 2026-08-30
+
+Everything outside Adventure mode. The mini-games, the puzzle modes and the achievements were
+all reachable in 1.0.0 and none of them said anything; all three are read now. The board keys
+also moved back to where the original PvZ accessibility mod has them, which is a change to
+muscle memory and the one thing in this release worth reading before playing.
+
+### Keys
+
+- **F1 pressed twice** now says what is guarding the row you are standing in — its mower, pool
+  cleaner or roof sweeper, or in I, Zombie whether the brain is still there. It used to list
+  the rows that had zombies in them, which was this mod's own invention and is gone rather
+  than moved.
+- **F3 pressed twice** says how many coins you have. A single press is still the sun.
+- Both match the original mod. A layout learned once should not have to be learned again for a
+  second game.
+
+### Mini-games, puzzles and survival
+
+- The three pages list what is on them, which entries are locked and which you have beaten, and
+  start the one you choose. They have no controls on them at all — the entries are picture
+  tiles bound to the game's own data — so the mod walks its own cursor over them and presses
+  each tile's own button.
+- The plant chooser now says which zombies a mini-game will actually send. It was announcing
+  "Zombie" and nothing else on every one of them, because a challenge level's declared list
+  says only that; the real list is the one the challenge code fills in.
+- The plant-headed zombies of ZomBotany, the Bobsled Team and nine other zombie types had no
+  name at all and read as whatever their internal name split into. They are named after the
+  head — "Pea-head", "Gatling-head" — because the short form used in a row scan drops the
+  trailing "zombie", and "Peashooter" alone would be the plant you just put down.
+
+### I, Zombie
+
+- The brains: how many are left and which rows they are in, on the key that reports progress
+  everywhere else. That key used to say "Wave 0 of 4" for the whole level, because there are no
+  waves in this mode.
+- A brain going is announced as it happens, with how many are left.
+- An eaten brain no longer reads as a brain still waiting. More generally, a destroyed thing on
+  a square is no longer reported for the frame before the game sweeps it away — a gravestone, a
+  crater, a rake.
+- The zombie packets are called what the rest of the game calls them. "Bucket-head", not
+  "Zombie Pail".
+
+### Achievements
+
+- All thirty-seven, with the name, whether you have earned it, and what it takes in the game's
+  own words. The screen is not a panel and has no text control on it — it is a section of the
+  main menu slid in over the top — so it is read from the game's data model instead.
+- **F6** reads every achievement you have not earned yet, each with what it takes. That is the
+  question behind opening the screen when the goal is to finish the game.
+- **F3** reads the whole list, **F4** the tally, **F1** repeats the one you are on.
+
+### Fixes
+
+- Locked challenges announced themselves as unlocked while refusing to start. Every flag on
+  those tiles is a boolean, and the helper that turns a model value into words handled strings
+  and numbers but not booleans, so all of them came back as nothing — and nothing and false
+  look identical to a caller holding a string.
+- A dotted key into the game's data model looked for one child named after the whole path, so
+  it never found anything. This is why the achievements list read as empty, and it had also
+  been quietly breaking one of the shop's three routes to the coin count since that was written.
+- A lawn mower that has already been set off is no longer counted as protection. The game
+  leaves it in its row while it charges across, and the row read as guarded at the exact moment
+  that was most wrong.
+- Mowers are told apart by kind. Announcing "mower" on a roof is a promise the lawn cannot keep.
+
 ## 1.0.0 — 2026-08-30
 
 First release. Adventure mode has been played from the first level to Dr Zomboss on a keyboard
