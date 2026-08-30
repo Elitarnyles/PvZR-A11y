@@ -287,17 +287,20 @@ public static class Hotkeys
         {
             if (onLawn)
             {
-                // Two levels answer this question with something other than waves.
+                // Three levels answer this question with something other than waves.
                 //
                 // On the last one there is a boss, and what matters is what he is about to
-                // throw, at which row, and how much of him is left. In I, Zombie there are no
-                // waves at all - the meter fills with brains eaten - so the usual line said
-                // "Wave 0 of 4" for the whole level and meant nothing by it.
+                // throw, at which row, and how much of him is left. In I, Zombie the meter
+                // fills with brains eaten. In Vase Breaker there is nothing to survive at all,
+                // only vases to get through. None of the three has waves, and the usual line
+                // said "Wave 0 of 4" on all of them for the whole level.
                 string boss = Boss.Describe();
                 string brains = boss == null && Brains.IsIZombieLevel ? Brains.Describe() : null;
+                string vases = boss == null && brains == null ? Lawn.VaseProgress() : null;
 
                 if (boss != null) Speech.SayVerbatim(boss, "boss");
                 else if (brains != null) Speech.SayVerbatim(brains, "brains");
+                else if (vases != null) Speech.SayVerbatim(vases, "vases");
                 else LawnInput.AnnounceProgress();
             }
             else Focus.ReadScreen();

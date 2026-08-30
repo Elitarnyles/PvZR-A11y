@@ -1384,6 +1384,67 @@ public static class Lawn
         }
     }
 
+    /// <summary>
+    /// How many vases are still standing, and how many of those are marked as holding a plant.
+    ///
+    /// The question the progress key should be answering in Vase Breaker. There are no waves
+    /// in that mode, so the line it gives everywhere else - which flag you are on and how far
+    /// through the level you are - had nothing behind it and said so in numbers that never
+    /// moved.
+    ///
+    /// Counted by walking the squares rather than the game's item list, because the list holds
+    /// dead entries until a sweep on the next frame takes them out, and a vase you have just
+    /// broken must not still be in the count.
+    /// </summary>
+    public static (int Total, int WithPlant) VasesLeft()
+    {
+        int total = 0;
+        int withPlant = 0;
+
+        if (_board == null) return (0, 0);
+
+        int rows = SafeRowCount();
+
+        for (int y = 0; y < rows; y++)
+        {
+            for (int x = 0; x < Columns; x++)
+            {
+                GridItem pot;
+                try { pot = _board.GetGridItemAt(GridItemType.ScaryPot, x, y); }
+                catch { continue; }
+
+                if (pot == null) continue;
+
+                try { if (pot.mDead) continue; } catch { }
+
+                total++;
+
+                try { if (pot.mGridItemState == GridItemState.ScaryPotLeaf) withPlant++; }
+                catch { }
+            }
+        }
+
+        return (total, withPlant);
+    }
+
+    /// <summary>What is left to break, in one sentence, or null off a Vase Breaker level.</summary>
+    public static string VaseProgress()
+    {
+        if (!IsVaseBreakerLevel) return null;
+
+        (int total, int withPlant) = VasesLeft();
+
+        if (total == 0) return Strings.T("lawn.no_vases");
+
+        string line = total == 1 ? Strings.T("lawn.vase_left") : Strings.T("lawn.vases_left", total);
+
+        // The marked ones are worth their own half-sentence: they are the plants the level
+        // gives you to fight with, and how many are still out there is the whole plan.
+        if (withPlant > 0) line += " " + Strings.T("lawn.vases_with_plant", withPlant);
+
+        return line;
+    }
+
     public static bool BreakVaseAtCursor(out string broke)
     {
         broke = null;

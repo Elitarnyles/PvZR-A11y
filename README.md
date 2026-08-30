@@ -160,7 +160,9 @@ mode is played.
 - **F2** — detail of the square under the cursor.
 - **F3** — how much sun you have. Pressed twice quickly, how many coins.
 - **F4** — level progress. On the last level, Dr Zomboss instead; in I, Zombie, how many
-  brains are left and which rows they are in.
+  brains are left and which rows they are in; in Vase Breaker, how many vases are still
+  standing and how many of those are marked as holding a plant. None of those three modes has
+  waves for the usual line to report.
 
 ### The last level
 
