@@ -135,7 +135,14 @@ public static class Hotkeys
         // The same key that starts a level from the chooser reads the deck once you are on
         // the lawn. Both answer "what have I got to work with", and on the lawn it is
         // otherwise doing nothing at all.
-        if (Lawn.IsOnBoard && Pressed(kb, _startLevel)) { LawnInput.AnnounceBank(); return; }
+        // The seed bank on a Slot Machine level is not a seed bank - its first three slots
+        // are the reels, and reading them out as plants you could pick was nonsense.
+        if (Lawn.IsOnBoard && Pressed(kb, _startLevel))
+        {
+            if (SlotMachine.IsActive) SlotMachine.AnnounceReels();
+            else LawnInput.AnnounceBank();
+            return;
+        }
 
         if (Pressed(kb, _silence)) { Speech.Silence(); return; }
 
@@ -279,12 +286,18 @@ public static class Hotkeys
                 // Sun on the first press, coins on the second. Sun is the number every
                 // decision on the lawn waits for and it is asked for constantly, so it goes
                 // where no second press has to be timed; coins are the slower question.
+                //
+                // On a Slot Machine level the second press pulls the handle instead, which is
+                // where the original mod put it. Coins are what gets given up for the length
+                // of that one level, and they are the right thing to give up: the number that
+                // matters there is the sun, and it stays on the press that needs no timing.
                 long now = Environment.TickCount64;
                 bool second = now - _lastInfo3At < DoubleTapMs;
                 _lastInfo3At = now;
 
-                if (second) LawnInput.AnnounceCoins();
-                else LawnInput.AnnounceSun();
+                if (!second) LawnInput.AnnounceSun();
+                else if (SlotMachine.IsActive) SlotMachine.Pull();
+                else LawnInput.AnnounceCoins();
             }
             else Focus.ReadScreen();
 
@@ -305,10 +318,13 @@ public static class Hotkeys
                 string boss = Boss.Describe();
                 string brains = boss == null && Brains.IsIZombieLevel ? Brains.Describe() : null;
                 string vases = boss == null && brains == null ? Lawn.VaseProgress() : null;
+                string slots = boss == null && brains == null && vases == null
+                    ? SlotMachine.Describe() : null;
 
                 if (boss != null) Speech.SayVerbatim(boss, "boss");
                 else if (brains != null) Speech.SayVerbatim(brains, "brains");
                 else if (vases != null) Speech.SayVerbatim(vases, "vases");
+                else if (slots != null) Speech.SayVerbatim(slots, "slots");
                 else LawnInput.AnnounceProgress();
             }
             else Focus.ReadScreen();

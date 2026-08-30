@@ -164,6 +164,23 @@ mode is played.
   standing and how many of those are marked as holding a plant. None of those three modes has
   waves for the usual line to report.
 
+### In the Slot Machine
+
+The keys are the ordinary lawn keys. Two of them mean something else for the length of that
+one level, because that level asks different questions.
+
+- **F3 pressed twice** — pull the handle. It costs twenty-five sun, and the mod says what you
+  have left. A single press is still the sun, which is the number that matters here; the coin
+  count is what gives up its place for this level.
+- **F6** — what the three reels are showing, and whether that is two of a kind, three of a
+  kind, or nothing. The first three slots of the seed bank are the reels, not plants you could
+  pick.
+- **F4** — how much of the two thousand sun you have, and whether you can afford a pull.
+
+When the reels stop after a pull you made, the mod says what they landed on without being
+asked. What they pay lands on the lawn as sun, diamonds or seed packets; the sun and the money
+collect themselves, and a packet is picked up the same way a Vase Breaker plant is.
+
 ### The last level
 
 Dr Zomboss does not walk down a row, so nothing else in the mod sees him coming. He picks
