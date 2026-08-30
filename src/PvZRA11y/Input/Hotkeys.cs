@@ -464,6 +464,17 @@ public static class Hotkeys
         if (Pressed(kb, Key.Tab))
             return Achievements.Move(kb.shiftKey.isPressed ? -1 : 1);
 
+        // Minus and Equals cycle a carousel everywhere else in the menus. There is none here,
+        // and left alone they reached the handler that says so - an answer to a question the
+        // player had not asked. They step the list instead.
+        if (Pressed(kb, _cycleLeft)) return Achievements.Move(-1);
+        if (Pressed(kb, _cycleRight)) return Achievements.Move(1);
+
+        // The original mod re-reads the entry under the cursor on this key. The general
+        // handler repeats whatever was last said, which after a look at the requirement is
+        // the requirement again rather than the entry.
+        if (Pressed(kb, _info1)) return Achievements.AnnounceCurrent();
+
         if (Pressed(kb, _activate)) return Achievements.AnnounceRequirement();
         if (Pressed(kb, _info2)) return Achievements.AnnounceRequirement();
 

@@ -240,6 +240,22 @@ public static class Achievements
         return true;
     }
 
+    /// <summary>Says the entry under the cursor again, without moving.</summary>
+    public static bool AnnounceCurrent()
+    {
+        int count = Count();
+        if (count <= 0)
+        {
+            Speech.SayVerbatim(Strings.T("achievements.empty"), "achievements");
+            return true;
+        }
+
+        if (_cursor >= count) _cursor = count - 1;
+
+        Speech.SayVerbatim(Describe(_cursor, count), "achievements");
+        return true;
+    }
+
     /// <summary>Says what the entry under the cursor takes.</summary>
     public static bool AnnounceRequirement()
     {

@@ -196,8 +196,9 @@ that row one you need to know about.
 
 ### In the achievements
 
-- **Up** and **Down**, or **Tab** and **Shift+Tab** — move through the list. Each one says
-  its name, whether you have earned it, and where it sits in the list.
+- **Up** and **Down**, **Tab** and **Shift+Tab**, or **Minus** and **Equals** — move through
+  the list. Each one says its name, whether you have earned it, and where it sits in the list.
+- **F1** — say that one again.
 - **Enter**, or **F2** — what that one takes, in the game's own words.
 - **F3** — read the whole list.
 - **F4** — how many you have earned out of how many there are.
