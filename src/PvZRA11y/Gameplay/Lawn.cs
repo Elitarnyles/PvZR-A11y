@@ -1007,17 +1007,23 @@ public static class Lawn
 
             if (item == null) continue;
 
-            // An eaten brain is not taken off the board - it is left where it was with its
-            // state changed. Reporting it as a brain told the player there was still one to
-            // go in a row they had already cleared, which is the one square on an I, Zombie
-            // lawn where a wrong answer costs a whole run.
+            // A dead item is still handed over. Killing one only marks it; the sweep that
+            // takes it out of the grid runs on the following frame, and this lookup does not
+            // skip the dead — so for that frame the square reads as still holding whatever
+            // has just been destroyed. On an I, Zombie lawn that is the difference between a
+            // row that still needs a zombie sent down it and one already won.
+            try { if (item.mDead) continue; } catch { }
+
+            // A squished brain is the other case: not dead yet, scored already, and sitting
+            // there for a few seconds. Named for what it is rather than counted as a brain
+            // still waiting to be eaten.
             if (type == GridItemType.IZombieBrain)
             {
-                bool eaten = false;
-                try { eaten = item.mGridItemState == GridItemState.BrainSquished; }
+                bool squished = false;
+                try { squished = item.mGridItemState == GridItemState.BrainSquished; }
                 catch { }
 
-                if (eaten) return Strings.T("lawn.item.BrainEaten");
+                if (squished) return Strings.T("lawn.item.BrainEaten");
             }
 
             string key = "lawn.item." + type;

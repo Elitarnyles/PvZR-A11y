@@ -54,9 +54,12 @@ public static class Brains
     /// <summary>
     /// True while the brain in this row is still there to be eaten.
     ///
-    /// Both of the ways a brain can go end with the item being freed, so its absence is the
-    /// answer as much as its state is. A squished one lingers a few seconds before it goes,
-    /// already scored, and must not be counted as still standing during them.
+    /// Three ways it can be gone, and asking about only one of them is how this went wrong
+    /// the first time. A brain chewed to nothing is marked dead and freed from the grid by a
+    /// sweep that runs on the following frame — and the lookup that finds it does not skip
+    /// dead items, so between those two moments it is still handed over, looking exactly like
+    /// a brain that is still there. A squished one is not even dead yet: it sits in place for
+    /// a few seconds after being scored. Both are gone as far as the player is concerned.
     /// </summary>
     public static bool StandingIn(int row)
     {
@@ -68,6 +71,8 @@ public static class Brains
         catch { return false; }
 
         if (brain == null) return false;
+
+        try { if (brain.mDead) return false; } catch { }
 
         try { return brain.mGridItemState != GridItemState.BrainSquished; }
         catch { return true; }
