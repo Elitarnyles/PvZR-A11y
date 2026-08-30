@@ -88,13 +88,26 @@ public static class SlotMachine
         return Lawn.PlantName(face);
     }
 
+    /// <summary>How many times the handle has been pulled, or -1.</summary>
+    private static int RollCount()
+    {
+        try { return Challenge()?.mSlotMachineRollCount ?? -1; }
+        catch { return -1; }
+    }
+
     /// <summary>
     /// Pulls the handle.
     ///
-    /// Through the game's own method, which takes the sun and starts the reels itself. It
-    /// answers false when it will not - while the reels are turning, with something in hand,
-    /// or without the sun to pay - and the mod then has to work out which of those it was,
-    /// because the game says nothing a player could hear.
+    /// Through the game's own method, which takes the sun and starts the reels itself. What it
+    /// will not do is tell you whether that worked: it answers false for a cursor with
+    /// something in it and for reels already turning, but when the sun is short it takes the
+    /// early exit and answers TRUE anyway. Believing it announced a pull that never happened,
+    /// with a sun total that had not changed - and a wrong answer in the voice of a right one
+    /// is the failure this mod can least afford.
+    ///
+    /// So the answer is thrown away and the game is watched instead. The count of pulls is
+    /// bumped on the success path and nowhere else, which makes it the one thing that says
+    /// yes or no without room for argument.
     /// </summary>
     public static bool Pull()
     {
@@ -113,10 +126,20 @@ public static class SlotMachine
             return true;
         }
 
+        // Named before trying, because the game refuses this silently and the refusal is one
+        // the player can do something about. A won seed packet in hand stops every pull until
+        // it is planted or put back, and "not enough sun" would be a lie about the cause.
+        CursorType? holding = Lawn.CursorKind();
+        if (holding.HasValue && holding.Value != CursorType.Normal)
+        {
+            Speech.SayVerbatim(Strings.T("slots.hands_full"), "slots");
+            return true;
+        }
+
+        int before = RollCount();
         int sun = Lawn.SunCount();
 
-        bool pulled;
-        try { pulled = challenge.PullSlotMachineHandle(); }
+        try { challenge.PullSlotMachineHandle(); }
         catch (Exception ex)
         {
             Core.Log.Warning($"[slots] the handle would not move: {ex.Message}");
@@ -124,19 +147,21 @@ public static class SlotMachine
             return true;
         }
 
+        int after = RollCount();
+        bool pulled = before < 0 || after > before;
+
         if (!pulled)
         {
-            // The one reason the mod can name for certain. Anything else - a plant in hand,
-            // a state the game is not ready in - is reported as a plain refusal rather than
-            // guessed at.
-            Speech.SayVerbatim(sun >= 0 && sun < PullCost
+            Core.Log.Msg($"[slots] the handle did not move; {sun} sun, pulls still {after}");
+
+            Speech.SayVerbatim(sun >= 0
                 ? Strings.T("slots.not_enough_sun", PullCost, sun)
                 : Strings.T("slots.will_not_pull"), "slots");
 
             return true;
         }
 
-        Core.Log.Msg($"[slots] pulled the handle with {sun} sun");
+        Core.Log.Msg($"[slots] pull {after} with {sun} sun");
         Speech.SayVerbatim(Strings.T("slots.pulled", Math.Max(0, sun - PullCost)), "slots");
 
         _watching = true;
@@ -195,10 +220,21 @@ public static class SlotMachine
         bool all = shown[0] == shown[1] && shown[1] == shown[2];
         bool pair = !all && (shown[0] == shown[1] || shown[1] == shown[2] || shown[0] == shown[2]);
 
-        if (all) return Strings.T("slots.jackpot", line);
-        if (pair) return Strings.T("slots.two_of_a_kind", line);
+        if (!all && !pair) return Strings.T("slots.nothing", line);
 
-        return Strings.T("slots.nothing", line);
+        // Which symbol won, and what it pays. "Two of a kind" on its own leaves the player to
+        // remember a payout table; and the diamonds need saying out loud, because they are the
+        // one prize that looks like a win and does nothing for the level - they pay shop
+        // money, and only sun counts towards the two thousand.
+        SeedType won = all ? shown[0]
+                     : shown[0] == shown[1] || shown[0] == shown[2] ? shown[0] : shown[1];
+
+        string prize;
+        if (won == SeedType.SlotMachineSun) prize = Strings.T(all ? "slots.won_sun_big" : "slots.won_sun");
+        else if (won == SeedType.SlotMachineDiamond) prize = Strings.T(all ? "slots.won_diamond_big" : "slots.won_diamond");
+        else prize = Strings.T(all ? "slots.won_plants" : "slots.won_plant", Lawn.PlantName(won));
+
+        return Strings.T(all ? "slots.jackpot" : "slots.two_of_a_kind", line) + " " + prize;
     }
 
     #region watching the reels stop
