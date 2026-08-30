@@ -294,110 +294,231 @@ public static class Challenges
 
     #region moving and choosing
 
-    /// <summary>
-    /// Moves the game's own selection, because the mod has nothing of its own to move.
-    ///
-    /// The page answers only to a controller, so the arrow keys are turned into a controller's
-    /// directional pad. What lands under the selection is then asked of the game rather than
-    /// counted by the mod: keeping a second cursor in step with one that cannot be seen is
-    /// exactly the kind of bookkeeping that goes quietly wrong.
-    /// </summary>
+    // The list as it stands on screen: one tile per entry, laid out by a GridLayoutGroup
+    // inside the page's scroll view. Each tile carries a binder bound to the game's own
+    // LevelEntryModel, whose child keys - read out of the shipped code, not guessed - are
+    // "name", "locked", "completed", "longestStreak" and "select", the last being the very
+    // button the mouse would press.
+    //
+    // So the mod does not move the game's grid highlight at all. It keeps its own cursor
+    // over the tiles, reads each one from its binder, and Enter activates the tile's own
+    // button model - the same proven path as the shop's back button. The dpad presses this
+    // page also listens for are left alone: they moved something the mod could never read
+    // back, which made every arrow silent.
+
+    private static int _cursor;
+    private static ChallengeEntryType _cursorFor = ChallengeEntryType.None;
+
+    /// <summary>The tiles on the open page, in the order they are laid out.</summary>
+    private static List<UnityEngine.Transform> Tiles(out int columns)
+    {
+        columns = 1;
+        var tiles = new List<UnityEngine.Transform>();
+
+        try
+        {
+            var grids = UnityEngine.Object.FindObjectsOfType<UnityEngine.UI.GridLayoutGroup>();
+            if (grids == null) return tiles;
+
+            foreach (var grid in grids)
+            {
+                if (grid == null) continue;
+
+                // The page's own grid, told apart by the prefab it lives in. There is one
+                // challenge panel per page and its name carries the word.
+                UnityEngine.Transform t = grid.transform;
+                bool ours = false;
+                for (UnityEngine.Transform up = t; up != null; up = up.parent)
+                    if (up.name.Contains("ChallengePanel")) { ours = true; break; }
+                if (!ours) continue;
+
+                try
+                {
+                    if (grid.constraint == UnityEngine.UI.GridLayoutGroup.Constraint.FixedColumnCount
+                        && grid.constraintCount > 0)
+                        columns = grid.constraintCount;
+                }
+                catch { }
+
+                int count = t.childCount;
+                for (int i = 0; i < count; i++)
+                {
+                    UnityEngine.Transform child = t.GetChild(i);
+                    if (child == null) continue;
+
+                    try { if (!child.gameObject.activeInHierarchy) continue; }
+                    catch { continue; }
+
+                    // The template the clones were stamped from sits in the same grid and
+                    // still carries its design-time text. A tile with no model behind it is
+                    // the template, not an entry.
+                    if (ReadTile(child, "*.name") == null) continue;
+
+                    tiles.Add(child);
+                }
+
+                break;
+            }
+        }
+        catch (Exception ex)
+        {
+            Core.Log.Warning($"[challenges] could not read the tiles: {ex.Message}");
+        }
+
+        return tiles;
+    }
+
+    private static string ReadTile(UnityEngine.Transform tile, string key)
+    {
+        try
+        {
+            var container = tile.GetComponentInChildren<Il2CppTekly.DataModels.Binders.BinderContainer>();
+            return ModelText.Value(container, key);
+        }
+        catch { return null; }
+    }
+
+    private static bool TileFlag(UnityEngine.Transform tile, string key)
+    {
+        string value = ReadTile(tile, key);
+        return value != null && value.Equals("True", StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>What to say about one tile, from the model that draws it.</summary>
+    private static string DescribeTile(UnityEngine.Transform tile, int index, int count)
+    {
+        var parts = new List<string>(4);
+
+        string name = ReadTile(tile, "*.name");
+        parts.Add(GameText.ResolveOrKeep(name) ?? Strings.T("msg.unlabelled"));
+
+        if (TileFlag(tile, "*.locked")) parts.Add(Strings.T("challenges.locked"));
+        if (TileFlag(tile, "*.completed")) parts.Add(Strings.T("challenges.beaten"));
+
+        if (TileFlag(tile, "*.showLongestStreak"))
+        {
+            string streak = ReadTile(tile, "*.longestStreak");
+            if (!string.IsNullOrWhiteSpace(streak)) parts.Add(GameText.ResolveOrKeep(streak));
+        }
+
+        parts.Add(Strings.T("challenges.position", index + 1, count));
+        return string.Join(", ", parts);
+    }
+
+    /// <summary>Walks the mod's own cursor across the tiles and says what it lands on.</summary>
     public static bool Move(int dx, int dy)
     {
-        GamepadButton button =
-            dy < 0 ? GamepadButton.DpadUp :
-            dy > 0 ? GamepadButton.DpadDown :
-            dx < 0 ? GamepadButton.DpadLeft : GamepadButton.DpadRight;
+        SyncCursor();
 
-        int before = SelectedIndex();
-
-        if (!Input.VirtualPad.Press(button))
+        var tiles = Tiles(out int columns);
+        if (tiles.Count == 0)
         {
-            Speech.Say(Strings.T("challenges.no_pad"), context: "challenges");
+            Speech.Say(Strings.T("challenges.empty", PageName()), context: "challenges");
             return true;
         }
 
-        _announceIn = AnnounceAfterFrames;
-        _announcedFrom = before;
+        int step = dx + dy * columns;
+        int target = _cursor + step;
+
+        if (target < 0 || target >= tiles.Count)
+        {
+            Speech.Say(Strings.T("challenges.edge"), context: "challenges edge");
+            return true;
+        }
+
+        _cursor = target;
+        Speech.Say(DescribeTile(tiles[_cursor], _cursor, tiles.Count),
+                   interrupt: true, context: "challenges", allowRepeat: true);
         return true;
     }
 
-    /// <summary>Starts what is selected.</summary>
+    /// <summary>Presses the button behind the tile the cursor is on.</summary>
     public static bool Choose()
     {
-        Core.Log.Msg($"[challenges] starting entry {SelectedIndex()}");
+        SyncCursor();
 
-        if (Input.VirtualPad.PressThenHandBack(GamepadButton.South)) return true;
+        var tiles = Tiles(out _);
+        if (tiles.Count == 0 || _cursor < 0 || _cursor >= tiles.Count)
+        {
+            Speech.Say(Strings.T("challenges.empty", PageName()), context: "challenges");
+            return true;
+        }
 
-        Speech.Say(Strings.T("challenges.no_pad"), context: "challenges");
+        UnityEngine.Transform tile = tiles[_cursor];
+        string name = GameText.ResolveOrKeep(ReadTile(tile, "*.name")) ?? "?";
+
+        if (TileFlag(tile, "*.locked"))
+        {
+            // Said rather than tried: the game would refuse anyway, and "Locked" with the
+            // name is more useful than whatever its refusal looks like.
+            Speech.Say(Strings.T("challenges.still_locked", name),
+                       interrupt: true, context: "challenges", allowRepeat: true);
+            return true;
+        }
+
+        Il2CppTekly.DataModels.Models.ButtonModel button = null;
+        try
+        {
+            var container = tile.GetComponentInChildren<Il2CppTekly.DataModels.Binders.BinderContainer>();
+            if (container != null && container.TryGet("*.select", out Il2CppTekly.DataModels.Models.IModel model))
+                button = model?.TryCast<Il2CppTekly.DataModels.Models.ButtonModel>();
+        }
+        catch (Exception ex)
+        {
+            Core.Log.Warning($"[challenges] could not reach the button on {name}: {ex.Message}");
+        }
+
+        if (button == null)
+        {
+            Speech.Say(Strings.T("challenges.cannot_start", name),
+                       interrupt: true, context: "challenges", allowRepeat: true);
+            return true;
+        }
+
+        try
+        {
+            Core.Log.Msg($"[challenges] starting {name} through its own button model");
+            button.Activate(0);
+        }
+        catch (Exception ex)
+        {
+            Core.Log.Warning($"[challenges] the button on {name} refused: {ex.Message}");
+            Speech.Say(Strings.T("challenges.cannot_start", name),
+                       interrupt: true, context: "challenges", allowRepeat: true);
+        }
+
         return true;
     }
 
-    /// <summary>Leaves the page.</summary>
+    /// <summary>Leaves the page. The back action is a controller binding, and it works.</summary>
     public static bool Leave()
     {
-        if (Input.VirtualPad.PressThenHandBack(GamepadButton.East)) return true;
+        if (Input.VirtualPad.PressThenHandBack(UnityEngine.InputSystem.LowLevel.GamepadButton.East))
+            return true;
 
         Speech.Say(Strings.T("challenges.no_pad"), context: "challenges");
         return true;
     }
 
-    /// <summary>Which entry the game says is selected, or -1.</summary>
-    public static int SelectedIndex()
+    private static void SyncCursor()
     {
-        try { return Activity()?.GetCurrentChallengeIndex() ?? -1; }
-        catch { return -1; }
+        ChallengeEntryType page = Page();
+        if (page == _cursorFor) return;
+        _cursorFor = page;
+        _cursor = 0;
     }
 
-    private static int _announceIn;
-    private static int _announcedFrom = -1;
-
-    /// <summary>Long enough for the game to have moved before it is asked what moved.</summary>
-    private const int AnnounceAfterFrames = 8;
-
-    /// <summary>
-    /// Says what the selection landed on, once the game has had time to move it.
-    ///
-    /// Logged either way, and with the index the game reports. Whether that index tracks the
-    /// highlighted entry is the one thing about this screen that could not be settled without
-    /// running it - so it is written down on every move rather than assumed, and if it turns
-    /// out not to follow, the log says so on the first press instead of after a session of
-    /// wondering why the names are wrong.
-    /// </summary>
+    /// <summary>Per-frame upkeep: only the reset when the page closes.</summary>
     public static void Tick()
     {
-        if (!IsActive)
-        {
-            _entries = null;
-            _entriesFor = ChallengeEntryType.None;
-            _announceIn = 0;
+        if (IsActive) return;
 
-            // Re-found per visit. A service handed out by an activity does not outlive it.
-            _user = null;
-            _reportedUserRoute = false;
-            return;
-        }
-
-        if (_announceIn <= 0) return;
-        if (--_announceIn > 0) return;
-
-        int index = SelectedIndex();
-        var entries = Entries();
-
-        Core.Log.Msg($"[challenges] selection {_announcedFrom} -> {index}" +
-                     $" of {entries.Count} entries");
-
-        if (index < 0 || index >= entries.Count)
-        {
-            // The index is not an index into this list, or the game does not keep one. Say the
-            // page rather than an entry, so the key is never silent.
-            Speech.Say(Strings.T("challenges.moved", PageName()),
-                       interrupt: true, context: "challenges", allowRepeat: true);
-            return;
-        }
-
-        Speech.Say(Describe(entries[index]), interrupt: true,
-                   context: "challenges", allowRepeat: true);
+        _entries = null;
+        _entriesFor = ChallengeEntryType.None;
+        _cursorFor = ChallengeEntryType.None;
+        _cursor = 0;
+        _user = null;
+        _reportedUserRoute = false;
     }
 
     #endregion
@@ -413,7 +534,8 @@ public static class Challenges
 
         var entries = Entries();
         sb.AppendLine($"  entries        : {entries.Count}");
-        sb.AppendLine($"  selected index : {SelectedIndex()}");
+        var tiles = Tiles(out int columns);
+        sb.AppendLine($"  tiles on screen: {tiles.Count}, {columns} columns, cursor at {_cursor}");
 
         foreach (LevelEntryData entry in entries)
         {

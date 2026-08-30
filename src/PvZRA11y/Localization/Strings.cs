@@ -116,6 +116,10 @@ public static class Strings
         ["challenges.beaten"] = "beaten",
         ["challenges.empty"] = "Nothing listed on the {0} page.",
         ["challenges.moved"] = "{0}",
+        ["challenges.position"] = "{0} of {1}",
+        ["challenges.edge"] = "Edge of the list.",
+        ["challenges.still_locked"] = "{0} is locked.",
+        ["challenges.cannot_start"] = "Could not start {0}.",
         ["challenges.no_pad"] = "This page answers only to a controller, and the mod's stand-in for one is switched off.",
 
         ["boss.arrived"] = "Dr Zomboss is here.",
