@@ -297,6 +297,7 @@ public static class Strings
         ["art.won"] = "The picture is done and the level is won.",
         ["art.unreadable"] = "The picture cannot be read just now.",
         ["art.no_pattern"] = "No picture to plant here.",
+        ["lawn.puzzle_no_digging"] = "These plants are the puzzle. They cannot be dug up.",
         ["lawn.no_board"] = "Not on a lawn.",
         ["lawn.edge_top"] = "Top row.",
         ["lawn.edge_bottom"] = "Bottom row.",

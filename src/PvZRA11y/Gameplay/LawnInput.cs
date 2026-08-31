@@ -512,6 +512,16 @@ public static class LawnInput
         // anyone arriving from it already has the habit.
         if (Lawn.IsWhackAZombieLevel) return Whack();
 
+        // Said rather than attempted, and said before the tool is even picked up. On the two
+        // match-three boards every square holds a plant and none of them is yours: they are
+        // the puzzle. "Nothing to dig up here" would be a strange answer on a board that is
+        // nothing but plants, and would leave a player pressing again to see if it took.
+        if (Lawn.IsMatchThreePuzzle)
+        {
+            Speech.Say(Strings.T("lawn.puzzle_no_digging"), context: "shovel");
+            return true;
+        }
+
         // Remembered before the dig, because digging takes whatever was in hand out of it.
         int heldBefore = Seeds.SelectedIndex();
 

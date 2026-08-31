@@ -1701,6 +1701,27 @@ public static class Lawn
     /// There is nothing to plant and nothing to dig up there; the same key swings instead.
     /// </summary>
     /// <summary>
+    /// True on Beghouled or Beghouled Twist.
+    ///
+    /// Told apart by game mode rather than by a question the activity answers, because it has
+    /// no method for these two the way it has IsArtChallenge and IsSlotMachineLevel.
+    /// </summary>
+    public static bool IsMatchThreePuzzle
+    {
+        get
+        {
+            if (_app == null) return false;
+
+            try
+            {
+                GameMode mode = _app.GameMode;
+                return mode == GameMode.ChallengeBeghouled || mode == GameMode.ChallengeBeghouledTwist;
+            }
+            catch { return false; }
+        }
+    }
+
+    /// <summary>
     /// True on Vase Breaker, where the plants come out of vases instead of a deck.
     ///
     /// Asked of the game rather than guessed from the seed bank. The bank was the guess, and
@@ -1817,6 +1838,17 @@ public static class Lawn
     {
         removed = null;
         if (_board == null) return false;
+
+        // Not on the two puzzle boards.
+        //
+        // Beghouled and Beghouled Twist fill every square with a plant, and none of those
+        // plants is yours to remove - they are the puzzle. The game protects itself by taking
+        // every click on those levels through the challenge's own handler; the mod hands the
+        // board a shovel click directly and so walks straight past that guard. One press of
+        // Backspace out of habit would have killed a piece off the board with no way to put it
+        // back.
+        if (IsMatchThreePuzzle) return false;
+
         if (!TryGetPosition(out int x, out int y)) return false;
 
         try
