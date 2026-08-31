@@ -54,6 +54,7 @@ public static class SelfTest
         Section(sb, "brains", Gameplay.Brains.Dump);
         Section(sb, "slot machine", Gameplay.SlotMachine.Dump);
         Section(sb, "art challenge", Gameplay.ArtChallenge.Dump);
+        Section(sb, "beghouled", Gameplay.Beghouled.Dump);
         Section(sb, "achievements", UI.Achievements.Dump);
         Section(sb, "notes", Gameplay.Notes.Check);
         Section(sb, "panels", CheckPanels);

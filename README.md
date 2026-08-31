@@ -164,6 +164,24 @@ mode is played.
   standing and how many of those are marked as holding a plant. None of those three modes has
   waves for the usual line to report.
 
+### In Beghouled and Beghouled Twist
+
+Eight columns by five rows of plants, and the game is to line three of a kind up. Seventy-five
+lines wins it. In Beghouled a move swaps two neighbours and only a swap that scores is allowed;
+in Twist a move turns a block of four a quarter turn.
+
+- **Minus** and **Equals** — step through the moves the board will take. Each one is read out
+  in full: which plant, which row and column, and which way it goes.
+- **Enter** — play the move you have stepped to.
+- **F6** — how many moves there are, and the first three.
+- **F4** — how many of the seventy-five lines you have cleared.
+- Walking the board, a square that can be moved into a line says so, and which way.
+- **Backspace does nothing here.** Every square holds a plant and none of them is yours to dig
+  up — they are the puzzle.
+
+The original mod played a tone when the plant under the cursor could be matched. This says the
+whole move instead, and will make it for you.
+
 ### In the picture puzzles
 
 Seeing Stars, Art Challenge Wall-nut and Art Challenge Sunflower are one mini-game in three

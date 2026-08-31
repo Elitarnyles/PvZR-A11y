@@ -887,6 +887,12 @@ public static class Lawn
         string wanted = ArtChallenge.HintFor(x, y);
         if (!string.IsNullOrEmpty(wanted)) parts.Add(wanted);
 
+        // The same shape of problem on the two match-three boards: what is worth knowing about
+        // a square is not what is standing on it but whether it can be moved into a line, and
+        // that is nowhere on screen in words.
+        string movable = Beghouled.HintFor(x, y);
+        if (!string.IsNullOrEmpty(movable)) parts.Add(movable);
+
         string planting = PlantingStateOf(x, y);
         if (!string.IsNullOrEmpty(planting)) parts.Add(planting);
 
@@ -1614,6 +1620,10 @@ public static class Lawn
     /// than assume, each candidate is round-tripped through PixelToGrid and only accepted
     /// if it lands on the square we meant. That turns a guess into a check.
     /// </summary>
+    /// <summary>A pixel inside a square, proved by converting it back. For the puzzle boards.</summary>
+    public static bool TryPixelInSquare(int x, int y, out int px, out int py)
+        => TryPixelForSquare(x, y, out px, out py);
+
     private static bool TryPixelForSquare(int x, int y, out int px, out int py)
     {
         px = py = 0;
