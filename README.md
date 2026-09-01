@@ -122,6 +122,9 @@ so if you know that one you already know this.
 - **F2** — what is focused right now.
 - **F3** — read the whole screen.
 - **F4** — read the whole screen.
+- **Left** and **Right** on a slider — move it, a tenth of the way per press, and hear where it
+  ended up. The game's own sliders answer a mouse drag and a gamepad stick, and neither is on
+  this keyboard.
 - **Minus** and **Equals** — move through the carousel on the level select screen.
 
 ### On the lawn
@@ -171,9 +174,11 @@ buys more of them, and a thousand sun buys the trophy that wins it — but they 
 brain costs five sun, so every brain is sun not spent on a zombie and every zombie is another
 mouth.
 
-- **Enter** — drop a brain where the cursor is. Not in the middle: the zombies swim to the
-  nearest one, so three brains in one place feed whoever is closest three times over while the
-  far side of the tank starves.
+- **Minus** and **Equals** — step through the zombies, each one saying where in the tank it is
+  swimming. The arrow keys do nothing here: the game refuses to move its grid cursor on this
+  level at all, because a tank of open water has no squares to walk.
+- **Enter** — drop a brain by the zombie you stepped to. They swim to the nearest one, so
+  where the food goes is a decision worth making.
 - **F4** — the sun you have towards the thousand, how many zombies are still swimming, and how
   many brains are in the water.
 

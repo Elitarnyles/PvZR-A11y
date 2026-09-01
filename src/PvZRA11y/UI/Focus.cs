@@ -236,6 +236,69 @@ public static class Focus
     /// itself out loud on the way, and "Disabled" followed by something else happening is
     /// not an explanation of anything.
     /// </summary>
+    /// <summary>
+    /// Nudges the slider that is focused, and says where it ended up.
+    ///
+    /// The game's own sliders answer a mouse drag and a gamepad stick, and neither is on this
+    /// keyboard. Every volume in the options screen could therefore be read and not one of
+    /// them could be changed - which for a player who works by ear is the setting that matters
+    /// most of all.
+    ///
+    /// Claimed only when a slider is what is focused, so the arrow keys go on belonging to the
+    /// game everywhere else in the menus.
+    /// </summary>
+    public static bool NudgeSlider(int direction)
+    {
+        UnityEngine.UI.Slider slider;
+
+        try
+        {
+            GameObject go = CurrentSelection();
+            if (go == null) return false;
+
+            Selectable selectable = SelectableOn(go);
+            slider = selectable?.TryCast<UnityEngine.UI.Slider>();
+        }
+        catch { return false; }
+
+        if (slider == null) return false;
+
+        try
+        {
+            float low = slider.minValue;
+            float high = slider.maxValue;
+            if (high <= low) return false;
+
+            // A tenth of the way per press, or one whole step where the slider only takes
+            // whole numbers. Ten presses end to end is enough control to set a volume by ear
+            // without turning it into a chore.
+            float step = slider.wholeNumbers ? 1f : (high - low) / 10f;
+            float wanted = Mathf.Clamp(slider.value + step * direction, low, high);
+
+            if (Mathf.Approximately(wanted, slider.value))
+            {
+                Speech.Say(Strings.T(direction > 0 ? "slider.at_max" : "slider.at_min"),
+                           context: "slider");
+                return true;
+            }
+
+            slider.value = wanted;
+
+            int percent = (int)Math.Round((wanted - low) / (high - low) * 100f);
+            Core.Log.Msg($"[slider] {slider.name} -> {wanted} ({percent} percent)");
+
+            Speech.Say(Strings.T("slider.now", percent),
+                       interrupt: true, context: "slider", allowRepeat: true);
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Core.Log.Warning($"[slider] could not move it: {ex.Message}");
+            return false;
+        }
+    }
+
     public static bool CanActivateCurrent()
     {
         GameObject go = CurrentSelection();

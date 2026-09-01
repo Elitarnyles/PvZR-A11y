@@ -123,16 +123,99 @@ public static class Zombiquarium
         catch { return -1; }
     }
 
+    /// <summary>One swimmer: where it is, and how to say where that is.</summary>
+    public readonly record struct Swimmer(int Index, float X, float Y);
+
+    /// <summary>The zombies in the tank, left to right.</summary>
+    public static List<Swimmer> Zombies()
+    {
+        var found = new List<Swimmer>();
+
+        Board board = Lawn.BoardRef;
+        if (board == null) return found;
+
+        try
+        {
+            var zombies = board.m_zombies;
+            if (zombies == null) return found;
+
+            int total = zombies.Count;
+            for (int i = 0; i < total; i++)
+            {
+                try
+                {
+                    Zombie zombie = zombies[i];
+                    if (zombie == null || zombie.mDead) continue;
+
+                    found.Add(new Swimmer(found.Count, zombie.mPosX, zombie.mPosY));
+                }
+                catch { }
+            }
+        }
+        catch (Exception ex)
+        {
+            Core.Log.Warning($"[tank] could not find the zombies: {ex.Message}");
+        }
+
+        found.Sort((a, b) => a.X.CompareTo(b.X));
+        return found;
+    }
+
+    /// <summary>Where something is in the tank, in words rather than in pixels.</summary>
+    public static string Where(float x, float y)
+    {
+        string across = x < TankLeft + (TankRight - TankLeft) / 3f ? Strings.T("tank.left")
+                      : x > TankRight - (TankRight - TankLeft) / 3f ? Strings.T("tank.right")
+                      : Strings.T("tank.centre");
+
+        string down = y < TankTop + (TankBottom - TankTop) / 3f ? Strings.T("tank.high")
+                    : y > TankBottom - (TankBottom - TankTop) / 3f ? Strings.T("tank.low")
+                    : Strings.T("tank.middle");
+
+        return Strings.T("tank.where", across, down);
+    }
+
+    private static int _chosen;
+
     /// <summary>
-    /// Drops a brain where the cursor is standing.
+    /// Steps through the zombies, saying where each one is swimming.
     ///
-    /// At the cursor rather than in the middle, because where the food goes is a decision: the
-    /// zombies swim to the nearest brain, so three brains dropped in one place feed whoever is
-    /// closest three times over while the far side of the tank starves.
+    /// The zombies are what a brain is aimed at, so they are what there is to choose between.
+    /// There is no cursor to do it with: the game refuses to move its grid cursor on this
+    /// level at all - the check is right there in its own code, by game mode, alongside the
+    /// Zen Garden - because a tank of open water has no squares to walk. Every arrow press
+    /// therefore answered "edge of the lawn", which is exactly what the player heard.
+    /// </summary>
+    public static bool Cycle(int step)
+    {
+        if (!Playable) return false;
+
+        List<Swimmer> swimmers = Zombies();
+        if (swimmers.Count == 0)
+        {
+            Speech.SayVerbatim(Strings.T("tank.empty"), "tank");
+            return true;
+        }
+
+        _chosen = ((_chosen + step) % swimmers.Count + swimmers.Count) % swimmers.Count;
+
+        Swimmer chosen = swimmers[_chosen];
+        Speech.SayVerbatim(Strings.T("tank.zombie_at", _chosen + 1, swimmers.Count,
+                                     Where(chosen.X, chosen.Y)), "tank");
+        return true;
+    }
+
+    /// <summary>
+    /// Drops a brain by the zombie that was chosen.
     ///
-    /// The game's own click handler does the work, which means it also applies its own rules -
-    /// the price, the limit of three, and the edges of the water. It says nothing about any of
-    /// them, so the mod checks first and says which one stopped it.
+    /// Aimed at a zombie because that is what the food is for, and because there is nothing
+    /// else on this level to aim at - no squares, no cursor. They swim to the nearest brain,
+    /// so dropping it where one of them is now is as close to feeding that one as the game
+    /// allows.
+    ///
+    /// The game's own click handler does the dropping, which means its rules apply as they
+    /// would to a mouse: the price, the limit of three, and the edges of the water. It says
+    /// nothing about any of them, so the mod checks first and names the one that stopped it.
     /// </summary>
     public static bool Feed()
     {
@@ -161,11 +244,21 @@ public static class Zombiquarium
             return true;
         }
 
-        if (!TryTankPixel(out int px, out int py))
+        List<Swimmer> swimmers = Zombies();
+        if (swimmers.Count == 0)
         {
-            Speech.SayVerbatim(Strings.T("tank.not_water"), "tank");
+            Speech.SayVerbatim(Strings.T("tank.empty"), "tank");
             return true;
         }
+
+        if (_chosen < 0 || _chosen >= swimmers.Count) _chosen = 0;
+        Swimmer target = swimmers[_chosen];
+
+        // Into the water even when the zombie is nosing the glass: the click handler ignores
+        // anything outside the tank, and a brain refused for being an inch too far left would
+        // look to the player exactly like one refused for being too poor.
+        int px = Clamp((int)target.X, TankLeft + 5, TankRight - 5);
+        int py = Clamp((int)target.Y, TankTop + 5, TankBottom - 5);
 
         try { challenge.ZombiquariumMouseDown(px, py); }
         catch (Exception ex)
@@ -180,36 +273,18 @@ public static class Zombiquarium
         int after = BrainsInWater();
         if (after <= before)
         {
-            Core.Log.Msg($"[tank] no brain appeared; {before} in the water, {sun} sun");
+            Core.Log.Msg($"[tank] no brain appeared at {px},{py}; {before} in the water, {sun} sun");
             Speech.SayVerbatim(Strings.T("tank.no_brain"), "tank");
             return true;
         }
 
         Core.Log.Msg($"[tank] dropped a brain at {px},{py}; now {after} in the water");
-        Speech.SayVerbatim(Strings.T("tank.fed", after, MaxBrains), "tank");
+        Speech.SayVerbatim(Strings.T("tank.fed", Where(px, py), after, MaxBrains), "tank");
         return true;
     }
 
-    /// <summary>
-    /// A pixel in the water under the cursor, or false when the cursor is not over water.
-    ///
-    /// The tank is a rectangle in board pixels, not a set of squares, and it does not line up
-    /// with the lawn's grid at the edges. Rather than pretend it does, the cursor's square is
-    /// turned into a pixel and that pixel is tested against the water.
-    /// </summary>
-    private static bool TryTankPixel(out int px, out int py)
-    {
-        px = py = 0;
-
-        if (!Lawn.TryGetPosition(out int x, out int y)) return false;
-        if (!Lawn.TryPixelInSquare(x, y, out int cx, out int cy)) return false;
-
-        if (cx < TankLeft || cx > TankRight || cy < TankTop || cy > TankBottom) return false;
-
-        px = cx;
-        py = cy;
-        return true;
-    }
+    private static int Clamp(int value, int low, int high) =>
+        value < low ? low : value > high ? high : value;
 
     /// <summary>How the tank stands, for the key that reports progress.</summary>
     public static string Describe()
@@ -243,7 +318,9 @@ public static class Zombiquarium
         sb.AppendLine($"  sun        : {Lawn.SunCount()} of {Target}");
         sb.AppendLine($"  zombies    : {Swimmers()}");
         sb.AppendLine($"  brains     : {BrainsInWater()} of {MaxBrains}");
-        sb.AppendLine($"  cursor over water: {TryTankPixel(out int px, out int py)} ({px},{py})");
+        foreach (Swimmer swimmer in Zombies())
+            sb.AppendLine($"      zombie {swimmer.Index + 1}: {swimmer.X:F0},{swimmer.Y:F0}" +
+                          $" — {Where(swimmer.X, swimmer.Y)}");
         sb.AppendLine();
     }
 }

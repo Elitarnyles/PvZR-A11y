@@ -188,12 +188,24 @@ public static class Hotkeys
             // thing a player needs that the board itself offers no way to do.
             if (Beghouled.Playable && Beghouled.Cycle(delta)) return;
 
+            // In the tank these step through the zombies, which is what a brain gets aimed at.
+            // There is no seed bank to cycle there and no cursor to move - the game refuses to
+            // move its own on that level - so this is the only way to choose where food goes.
+            if (Zombiquarium.Playable && Zombiquarium.Cycle(delta)) return;
+
             if (SeedChooser.CycleDeck(delta)) return;
             if (LawnInput.CycleSeed(delta)) return;
             if (!LevelSelect.Cycle(delta))
                 Speech.Say(Strings.T("msg.no_carousel"), context: "cycle");
             return;
         }
+
+        // A slider under the focus takes the left and right arrows, and nothing else does -
+        // so they are claimed here and only here, and go on belonging to the game everywhere
+        // else in the menus.
+        if (!Lawn.HasInput && (Pressed(kb, Key.LeftArrow) || Pressed(kb, Key.RightArrow))
+            && Focus.NudgeSlider(Pressed(kb, Key.RightArrow) ? 1 : -1))
+            return;
 
         // Not while the lawn is in charge. Tab is the game's own fast-forward there, and
         // walking between heads-up-display buttons is pointless when the arrows drive the grid.
