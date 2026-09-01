@@ -235,6 +235,10 @@ public static class Hotkeys
             // is for there: it plays the move the player has stepped to.
             if (Beghouled.Playable && Beghouled.Play()) return;
 
+            // In the tank this key drops a brain where the cursor is. There is nothing to
+            // plant there, and feeding is the one thing that level asks of you over and over.
+            if (Zombiquarium.Playable && Zombiquarium.Feed()) return;
+
             if (LawnInput.Plant()) return;
             Focus.ActivateCurrent();
         }
@@ -352,6 +356,8 @@ public static class Hotkeys
                     ? ArtChallenge.Describe() : null;
                 string lines = boss == null && brains == null && vases == null && slots == null
                     && art == null ? Beghouled.Describe() : null;
+                string tank = boss == null && brains == null && vases == null && slots == null
+                    && art == null && lines == null ? Zombiquarium.Describe() : null;
 
                 if (boss != null) Speech.SayVerbatim(boss, "boss");
                 else if (brains != null) Speech.SayVerbatim(brains, "brains");
@@ -359,6 +365,7 @@ public static class Hotkeys
                 else if (slots != null) Speech.SayVerbatim(slots, "slots");
                 else if (art != null) Speech.SayVerbatim(art, "art");
                 else if (lines != null) Speech.SayVerbatim(lines, "beghouled");
+                else if (tank != null) Speech.SayVerbatim(tank, "tank");
                 else LawnInput.AnnounceProgress();
             }
             else Focus.ReadScreen();

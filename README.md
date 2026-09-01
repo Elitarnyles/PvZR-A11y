@@ -164,6 +164,22 @@ mode is played.
   standing and how many of those are marked as holding a plant. None of those three modes has
   waves for the usual line to report.
 
+### In the Zombiquarium
+
+The one where you keep the zombies alive instead of killing them. They give off sun, the sun
+buys more of them, and a thousand sun buys the trophy that wins it — but they starve, and a
+brain costs five sun, so every brain is sun not spent on a zombie and every zombie is another
+mouth.
+
+- **Enter** — drop a brain where the cursor is. Not in the middle: the zombies swim to the
+  nearest one, so three brains in one place feed whoever is closest three times over while the
+  far side of the tank starves.
+- **F4** — the sun you have towards the thousand, how many zombies are still swimming, and how
+  many brains are in the water.
+
+Five sun a brain, three brains in the water at once. If a brain will not go in, the mod says
+which of those stopped it.
+
 ### In Beghouled and Beghouled Twist
 
 Eight columns by five rows of plants, and the game is to line three of a kind up. Seventy-five
