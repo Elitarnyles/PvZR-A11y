@@ -31,8 +31,19 @@ public static class Beghouled
     /// <summary>Lines to clear to win.</summary>
     public const int Target = 75;
 
-    /// <summary>True on either of the two.</summary>
+    /// <summary>True on either of the two, whatever is on screen over it.</summary>
     public static bool IsActive => Lawn.IsMatchThreePuzzle;
+
+    /// <summary>
+    /// True when the puzzle is also the thing the keyboard belongs to.
+    ///
+    /// The game mode stays Beghouled after the level is won, and the award screen opens over
+    /// the board rather than replacing it. Asking only "is this a Beghouled level" therefore
+    /// went on answering yes with a trophy on screen, and the puzzle's keys went on eating
+    /// Enter - so the award screen could be read and not pressed, and the level could not be
+    /// left. The lawn already works out when the keyboard is not its own; this defers to it.
+    /// </summary>
+    public static bool Playable => IsActive && Lawn.HasInput;
 
     /// <summary>True on the one where a move is a quarter turn rather than a swap.</summary>
     public static bool IsTwist
@@ -206,7 +217,7 @@ public static class Beghouled
     /// <summary>What to add to the square announcement as the cursor walks the board.</summary>
     public static string HintFor(int x, int y)
     {
-        if (!IsActive || !Ready) return null;
+        if (!Playable || !Ready) return null;
 
         List<Move> here = MovesAt(x, y);
         if (here.Count == 0) return null;
@@ -228,7 +239,7 @@ public static class Beghouled
     /// <summary>Steps through the moves the board will take, saying each one.</summary>
     public static bool Cycle(int step)
     {
-        if (!IsActive) return false;
+        if (!Playable) return false;
 
         if (!Ready)
         {
@@ -253,7 +264,7 @@ public static class Beghouled
     /// <summary>Says how many moves there are, and the first few.</summary>
     public static bool AnnounceMoves()
     {
-        if (!IsActive) return false;
+        if (!Playable) return false;
 
         if (!Ready)
         {
@@ -287,7 +298,7 @@ public static class Beghouled
     /// </summary>
     public static bool Play()
     {
-        if (!IsActive) return false;
+        if (!Playable) return false;
 
         if (!Ready)
         {
@@ -320,6 +331,23 @@ public static class Beghouled
         return true;
     }
 
+    /// <summary>
+    /// Whether the last thing sent to the board actually moved anything.
+    ///
+    /// A move that takes ends with the board falling, and falling is a state of its own. A move
+    /// the game refused leaves the state exactly where it was. So the state having left Normal
+    /// is the proof, and it is available in the same frame - no waiting, no guessing from the
+    /// score, which does not move until the pieces land.
+    ///
+    /// Worth the trouble because the alternative is the failure this mod keeps having to hunt
+    /// down: announcing a thing that did not happen, in the same words used when it does.
+    /// </summary>
+    private static bool Took()
+    {
+        try { return Challenge()?.mChallengeState != ChallengeState.Normal; }
+        catch { return false; }
+    }
+
     /// <summary>Plays a move by handing the game the click a mouse would have made.</summary>
     private static bool Perform(Move move)
     {
@@ -342,6 +370,12 @@ public static class Beghouled
             // and the axis with the larger movement is the one it takes.
             challenge.BeghouledDragStart(px, py);
             challenge.BeghouledDragUpdate(px + move.Dx * 40, py + move.Dy * 50);
+
+            // The drag clears its own capture flag once it has decided, but only if it decided
+            // at all - a delta the game thought too small leaves the board waiting for a mouse
+            // that will never move again.
+            if (!Took()) { try { challenge.BeghouledDragCancel(); } catch { } return false; }
+
             return true;
         }
         catch (Exception ex)
@@ -396,7 +430,7 @@ public static class Beghouled
                     if (!onBlock || tx != move.X || ty != move.Y) continue;
 
                     challenge.BeghouledTwistMouseDown(px, py);
-                    return true;
+                    return Took();
                 }
             }
         }

@@ -141,7 +141,7 @@ public static class Hotkeys
         if (Lawn.IsOnBoard && Pressed(kb, _startLevel))
         {
             if (SlotMachine.IsActive) { SlotMachine.AnnounceReels(); return; }
-            if (Beghouled.IsActive) { Beghouled.AnnounceMoves(); return; }
+            if (Beghouled.Playable) { Beghouled.AnnounceMoves(); return; }
 
             // On a picture puzzle this key gives the picture, and a second press gives the
             // deck. Both are needed and neither can be dropped: the sunflower wants three
@@ -186,7 +186,7 @@ public static class Hotkeys
             // On the match-three boards these step through the moves the board will take.
             // There is no seed bank to cycle there, and stepping a list of moves is the one
             // thing a player needs that the board itself offers no way to do.
-            if (Beghouled.IsActive && Beghouled.Cycle(delta)) return;
+            if (Beghouled.Playable && Beghouled.Cycle(delta)) return;
 
             if (SeedChooser.CycleDeck(delta)) return;
             if (LawnInput.CycleSeed(delta)) return;
@@ -233,7 +233,7 @@ public static class Hotkeys
                 && Store.AdvanceDave()) return;
             // Nothing can be in hand on a match-three board, so planting is not what this key
             // is for there: it plays the move the player has stepped to.
-            if (Beghouled.IsActive && Beghouled.Play()) return;
+            if (Beghouled.Playable && Beghouled.Play()) return;
 
             if (LawnInput.Plant()) return;
             Focus.ActivateCurrent();

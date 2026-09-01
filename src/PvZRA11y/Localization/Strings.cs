@@ -311,7 +311,7 @@ public static class Strings
         ["beghouled.count"] = "{0} moves.",
         ["beghouled.no_moves"] = "No moves left. The board will shuffle itself.",
         ["beghouled.settling"] = "The board is still settling.",
-        ["beghouled.would_not_play"] = "That move would not go through.",
+        ["beghouled.would_not_play"] = "The board did not take that move.",
         ["beghouled.progress"] = "{0} of the {1} lines you need.",
         ["beghouled.no_score"] = "Cannot tell how many lines you have.",
         ["lawn.no_board"] = "Not on a lawn.",
