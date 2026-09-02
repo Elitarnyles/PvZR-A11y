@@ -167,6 +167,19 @@ mode is played.
   standing and how many of those are marked as holding a plant. None of those three modes has
   waves for the usual line to report.
 
+### In Last Stand
+
+This one does not start when you leave the plant chooser. It gives you a budget of sun and an
+empty lawn and waits: you spend the lot laying out a defence, then tell it to send the wave. It
+waits again between stages, with whatever sun the last one left you.
+
+- **F5** — send the wave. That key otherwise freezes the game, and there is nothing running to
+  freeze while it is waiting for you. It is where the original mod put it too.
+- **F4** — during planning, how much sun you have to spend; during the wave, the usual progress.
+
+The mod says when the game starts waiting for you, because nothing else marks that moment and a
+silence with no zombies in it is otherwise hard to read.
+
 ### In the Zombiquarium
 
 The one where you keep the zombies alive instead of killing them. They give off sun, the sun

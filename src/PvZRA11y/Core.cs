@@ -115,6 +115,7 @@ public class Core : MelonMod
         ("boss",         Gameplay.Boss.Tick),
         ("brains",       Gameplay.Brains.Tick),
         ("slots",        Gameplay.SlotMachine.Tick),
+        ("last stand",   Gameplay.LastStand.Tick),
         ("tones",        Tones.Pump),
         ("speech",       Speech.Pump),
     };

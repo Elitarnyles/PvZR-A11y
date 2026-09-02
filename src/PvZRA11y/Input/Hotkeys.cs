@@ -124,7 +124,16 @@ public static class Hotkeys
 
         // Checked against IsOnBoard rather than HasInput: freezing is what makes the board
         // paused, so requiring an unpaused board to unfreeze would lock it frozen.
-        if (Lawn.IsOnBoard && Pressed(kb, _freeze)) { LawnInput.ToggleFreeze(); return; }
+        if (Lawn.IsOnBoard && Pressed(kb, _freeze))
+        {
+            // On Last Stand this key sends the wave instead, while the game is waiting to be
+            // told to. That is where the original mod put it, and there is nothing running to
+            // freeze during the planning phase anyway.
+            if (LastStand.CanStart && LastStand.Start()) return;
+
+            LawnInput.ToggleFreeze();
+            return;
+        }
 
         // Only on the lawn: Backspace means "go back" in menus, and the game owns it there.
         if (Lawn.HasInput && Pressed(kb, _shovel)) { LawnInput.Shovel(); return; }
@@ -370,6 +379,8 @@ public static class Hotkeys
                     && art == null ? Beghouled.Describe() : null;
                 string tank = boss == null && brains == null && vases == null && slots == null
                     && art == null && lines == null ? Zombiquarium.Describe() : null;
+                string stand = boss == null && brains == null && vases == null && slots == null
+                    && art == null && lines == null && tank == null ? LastStand.Describe() : null;
 
                 if (boss != null) Speech.SayVerbatim(boss, "boss");
                 else if (brains != null) Speech.SayVerbatim(brains, "brains");
@@ -378,6 +389,7 @@ public static class Hotkeys
                 else if (art != null) Speech.SayVerbatim(art, "art");
                 else if (lines != null) Speech.SayVerbatim(lines, "beghouled");
                 else if (tank != null) Speech.SayVerbatim(tank, "tank");
+                else if (stand != null) Speech.SayVerbatim(stand, "last stand");
                 else LawnInput.AnnounceProgress();
             }
             else Focus.ReadScreen();
